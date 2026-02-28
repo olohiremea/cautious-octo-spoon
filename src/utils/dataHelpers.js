@@ -3,24 +3,37 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 /**
- * Parse a date string as local midnight.
- * Handles YYYY-MM-DD (ISO) and M/D/YYYY / MM/DD/YYYY (Google Sheets default US format).
- * Falls back to native Date constructor for anything else.
+ * Parse a date value coming from the Google Visualization API (gviz/tq endpoint).
+ * The GViz API serialises date cell values as the string "Date(YYYY,M,D)" where
+ * M is 0-indexed (January = 0).  This is true regardless of the cell's display
+ * format in the spreadsheet.
+ *
+ * Also handles ISO (YYYY-MM-DD) and US slash (M/D/YYYY) formats as fallbacks.
  */
 function parseLocalDate(str) {
   if (!str) return new Date(NaN);
+  if (str instanceof Date) return str;
+
   const s = String(str).trim();
-  // ISO: 2026-02-21
+
+  // Google Visualization API: "Date(2026,1,21)"  — month is already 0-indexed
+  const gviz = s.match(/^Date\((\d{4}),(\d{1,2}),(\d{1,2})\)$/);
+  if (gviz) {
+    return new Date(Number(gviz[1]), Number(gviz[2]), Number(gviz[3]));
+  }
+
+  // ISO: "2026-02-21"
   if (/^\d{4}-\d{2}-\d{2}$/.test(s)) {
     const [y, m, d] = s.split('-').map(Number);
     return new Date(y, m - 1, d);
   }
-  // US: 2/21/2026 or 02/21/2026 (Google Sheets FORMATTED_VALUE default)
+
+  // US slash: "2/21/2026" or "02/21/2026"
   if (/^\d{1,2}\/\d{1,2}\/\d{4}$/.test(s)) {
     const [m, d, y] = s.split('/').map(Number);
     return new Date(y, m - 1, d);
   }
-  // Anything else — let the browser try
+
   return new Date(s);
 }
 
