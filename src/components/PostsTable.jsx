@@ -4,18 +4,20 @@ import { getAvgPostEngagementRate, formatNumber } from '../utils/dataHelpers';
 const PAGE_SIZE = 10;
 
 const ADAM_COLUMNS = [
-  { key: 'Format',           label: 'Format',         sortable: true  },
-  { key: 'Impressions',      label: 'Impressions',     sortable: true  },
-  { key: 'Engagements',      label: 'Engagements',     sortable: true  },
-  { key: 'Engagement_Rate',  label: 'Eng. Rate',       sortable: true  },
-  { key: 'Profile_Views',    label: 'Profile Views',   sortable: true  },
-  { key: 'Followers_Gained', label: 'Followers Gained', sortable: true },
+  { key: 'Format',           label: 'Format',          sortable: true  },
+  { key: 'Post_Preview',     label: 'Preview',          sortable: false },
+  { key: 'Impressions',      label: 'Impressions',      sortable: true  },
+  { key: 'Engagements',      label: 'Engagements',      sortable: true  },
+  { key: 'Engagement_Rate',  label: 'Eng. Rate',        sortable: true  },
+  { key: 'Profile_Views',    label: 'Profile Views',    sortable: true  },
+  { key: 'Followers_Gained', label: 'Followers Gained', sortable: true  },
 ];
 
 const CHORE_COLUMNS = [
-  { key: 'Impressions',     label: 'Impressions', sortable: true },
-  { key: 'Engagements',     label: 'Engagements', sortable: true },
-  { key: 'Engagement_Rate', label: 'Eng. Rate',   sortable: true },
+  { key: 'Post_Preview',     label: 'Preview',     sortable: false },
+  { key: 'Impressions',      label: 'Impressions', sortable: true  },
+  { key: 'Engagements',      label: 'Engagements', sortable: true  },
+  { key: 'Engagement_Rate',  label: 'Eng. Rate',   sortable: true  },
 ];
 
 function SortIcon({ direction }) {
@@ -30,6 +32,7 @@ export default function PostsTable({ posts, account = 'Adam', accentColor = '#3B
   const [sortDir, setSortDir] = useState('desc');
   const [page, setPage] = useState(1);
 
+  // avgRate is already in % units (getAvgPostEngagementRate multiplies by 100)
   const avgRate = useMemo(() => getAvgPostEngagementRate(posts), [posts]);
 
   const sorted = useMemo(() => {
@@ -56,29 +59,45 @@ export default function PostsTable({ posts, account = 'Adam', accentColor = '#3B
     setPage(1);
   }
 
-  function engRateColor(rate) {
-    if (rate >= avgRate) return 'text-emerald-400 font-semibold';
-    return 'text-red-400';
+  // rate is already converted to % before calling this
+  function engRateColor(ratePct) {
+    return ratePct >= avgRate ? 'text-emerald-400 font-semibold' : 'text-red-400';
   }
 
   function renderCell(post, col) {
     const val = post[col.key];
+
     if (col.key === 'Engagement_Rate') {
+      // Sheet stores as decimal fraction; multiply × 100 for display
+      const pct = val != null ? parseFloat((val * 100).toFixed(2)) : null;
       return (
-        <td key={col.key} className={`px-4 py-3 whitespace-nowrap tabular-nums ${engRateColor(val ?? 0)}`}>
-          {val != null ? `${val}%` : '—'}
+        <td key={col.key} className={`px-4 py-3 whitespace-nowrap tabular-nums ${engRateColor(pct ?? 0)}`}>
+          {pct != null ? `${pct}%` : '—'}
         </td>
       );
     }
+
     if (col.key === 'Format') {
       return (
-        <td key={col.key} className="px-4 py-3 whitespace-nowrap text-slate-300">
-          <span className="rounded-full bg-slate-700 px-2 py-0.5 text-xs font-medium">
+        <td key={col.key} className="px-4 py-3 whitespace-nowrap">
+          <span className="rounded-full bg-slate-700 px-2 py-0.5 text-xs font-medium text-slate-300">
             {val ?? '—'}
           </span>
         </td>
       );
     }
+
+    if (col.key === 'Post_Preview') {
+      const text = val ?? '';
+      return (
+        <td key={col.key} className="px-4 py-3 text-slate-300 max-w-xs">
+          <span className="line-clamp-2 text-sm leading-snug">
+            {text.length > 80 ? text.slice(0, 80) + '…' : text || '—'}
+          </span>
+        </td>
+      );
+    }
+
     return (
       <td key={col.key} className="px-4 py-3 whitespace-nowrap text-slate-300 tabular-nums">
         {formatNumber(val)}

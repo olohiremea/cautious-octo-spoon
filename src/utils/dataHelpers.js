@@ -2,11 +2,26 @@
 // Data processing utilities for the LinkedIn Analytics Dashboard
 // ─────────────────────────────────────────────────────────────────────────────
 
-/** Parse a YYYY-MM-DD string as local midnight (avoids UTC timezone shift) */
+/**
+ * Parse a date string as local midnight.
+ * Handles YYYY-MM-DD (ISO) and M/D/YYYY / MM/DD/YYYY (Google Sheets default US format).
+ * Falls back to native Date constructor for anything else.
+ */
 function parseLocalDate(str) {
   if (!str) return new Date(NaN);
-  const [y, m, d] = String(str).split('-').map(Number);
-  return new Date(y, m - 1, d);
+  const s = String(str).trim();
+  // ISO: 2026-02-21
+  if (/^\d{4}-\d{2}-\d{2}$/.test(s)) {
+    const [y, m, d] = s.split('-').map(Number);
+    return new Date(y, m - 1, d);
+  }
+  // US: 2/21/2026 or 02/21/2026 (Google Sheets FORMATTED_VALUE default)
+  if (/^\d{1,2}\/\d{1,2}\/\d{4}$/.test(s)) {
+    const [m, d, y] = s.split('/').map(Number);
+    return new Date(y, m - 1, d);
+  }
+  // Anything else — let the browser try
+  return new Date(s);
 }
 
 /** Filter weekly rows whose Week date falls in the given month/year */
@@ -117,11 +132,15 @@ export function enrichPosts(posts) {
   return posts.map((p) => ({ ...p }));
 }
 
+/**
+ * Returns the average post engagement rate as a **percentage** value (e.g. 2.35).
+ * The posts sheet stores Engagement_Rate as a decimal fraction (e.g. 0.0235),
+ * so we multiply by 100 before returning.
+ */
 export function getAvgPostEngagementRate(posts) {
   if (!posts.length) return 0;
-  return parseFloat(
-    (posts.reduce((s, p) => s + (p.Engagement_Rate ?? 0), 0) / posts.length).toFixed(2)
-  );
+  const avg = posts.reduce((s, p) => s + (p.Engagement_Rate ?? 0), 0) / posts.length;
+  return parseFloat((avg * 100).toFixed(2));
 }
 
 // ── Formatting ────────────────────────────────────────────────────────────────

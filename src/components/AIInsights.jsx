@@ -56,12 +56,15 @@ Format your response as concise bullet points (use • as the bullet character).
 
 // ── Component ─────────────────────────────────────────────────────────────────
 
-export default function AIInsights({ adamPosts, chorePosts, adamWeekly, choreWeekly, goals }) {
+export default function AIInsights({ adamPosts, chorePosts, adamWeekly, choreWeekly, goals, year, month }) {
   const [insights, setInsights] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
-  const { year: cy, month: cm } = currentMonthYM();
+  // Use selected year/month if provided, otherwise fall back to current month
+  const { year: defaultYear, month: defaultMonth } = currentMonthYM();
+  const cy = year ?? defaultYear;
+  const cm = month ?? defaultMonth;
 
   const prompt = useMemo(() => {
     // Per-format stats from Adam posts
@@ -71,7 +74,8 @@ export default function AIInsights({ adamPosts, chorePosts, adamWeekly, choreWee
         count: posts.length,
         avgImpressions: avg(posts, 'Impressions'),
         avgEngagements: avg(posts, 'Engagements'),
-        avgEngRate: avg(posts, 'Engagement_Rate'),
+        // Sheet stores ER as fraction; multiply × 100 for display
+        avgEngRate: parseFloat((avg(posts, 'Engagement_Rate') * 100).toFixed(2)),
         avgProfileViews: avg(posts, 'Profile_Views'),
         avgFollowersGained: avg(posts, 'Followers_Gained'),
       }])

@@ -5,7 +5,6 @@ import HealthScoreRing from './HealthScoreRing';
 import { CombinedFollowerChart } from './FollowerChart';
 import AIInsights from './AIInsights';
 import {
-  currentMonthYM,
   getFollowerGrowth,
   getTotalImpressions,
   getAvgEngagementRate,
@@ -17,25 +16,30 @@ import {
   formatNumber,
 } from '../utils/dataHelpers';
 
-const ADAM_BLUE = '#3B82F6';
+const ADAM_BLUE   = '#3B82F6';
 const CHORE_PURPLE = '#8B5CF6';
 
-export default function UnifiedView({ adamWeekly, choreWeekly, adamPosts, chorePosts, goals }) {
-  const { year: cy, month: cm } = currentMonthYM();
+export default function UnifiedView({ adamWeekly, choreWeekly, adamPosts, chorePosts, goals, year, month }) {
+  // Derive "last month" from selected year/month
+  const ly = month === 0 ? year - 1 : year;
+  const lm = month === 0 ? 11 : month - 1;
+
+  const cy = year;
+  const cm = month;
 
   const metrics = useMemo(() => {
     // ── Adam ───────────────────────────────────────────────────────────────
-    const adamFollowers = getCurrentFollowers(adamWeekly);
-    const adamGrowth = getFollowerGrowth(adamWeekly, cy, cm);
+    const adamFollowers   = getCurrentFollowers(adamWeekly);
+    const adamGrowth      = getFollowerGrowth(adamWeekly, cy, cm);
     const adamImpressions = getTotalImpressions(adamWeekly, cy, cm);
-    const adamEngagement = getAvgEngagementRate(adamWeekly, cy, cm);
-    const adamPostCount = getTotalPosts(adamWeekly, cy, cm);
+    const adamEngagement  = getAvgEngagementRate(adamWeekly, cy, cm);
+    const adamPostCount   = getTotalPosts(adamWeekly, cy, cm);
 
     // ── Chore ──────────────────────────────────────────────────────────────
-    const choreFollowers = getCurrentFollowers(choreWeekly);
-    const choreGrowth = getFollowerGrowth(choreWeekly, cy, cm);
+    const choreFollowers   = getCurrentFollowers(choreWeekly);
+    const choreGrowth      = getFollowerGrowth(choreWeekly, cy, cm);
     const choreImpressions = getTotalImpressions(choreWeekly, cy, cm);
-    const choreEngagement = getAvgEngagementRate(choreWeekly, cy, cm);
+    const choreEngagement  = getAvgEngagementRate(choreWeekly, cy, cm);
 
     // ── Goals ──────────────────────────────────────────────────────────────
     const adamGoals = {
@@ -63,26 +67,22 @@ export default function UnifiedView({ adamWeekly, choreWeekly, adamPosts, choreP
       isOnTrack(choreEngagement,  choreGoals.engagement),
     ];
 
-    const adamHealth  = calculateHealthScore(adamTracking);
-    const choreHealth = calculateHealthScore(choreTracking);
-
     return {
       adamFollowers, adamGrowth, adamImpressions, adamEngagement, adamPostCount,
       choreFollowers, choreGrowth, choreImpressions, choreEngagement,
       adamGoals, choreGoals,
-      adamHealth, choreHealth,
+      adamHealth:  calculateHealthScore(adamTracking),
+      choreHealth: calculateHealthScore(choreTracking),
     };
   }, [adamWeekly, choreWeekly, goals, cy, cm]);
 
   const {
     adamFollowers, adamGrowth, adamImpressions, adamEngagement, adamPostCount,
     choreFollowers, choreGrowth, choreImpressions, choreEngagement,
-    adamGoals, choreGoals,
-    adamHealth, choreHealth,
+    adamGoals, choreGoals, adamHealth, choreHealth,
   } = metrics;
 
-  const now = new Date();
-  const monthName = now.toLocaleString('default', { month: 'long', year: 'numeric' });
+  const monthName = new Date(year, month, 1).toLocaleString('default', { month: 'long', year: 'numeric' });
 
   return (
     <div className="space-y-6">
@@ -93,7 +93,7 @@ export default function UnifiedView({ adamWeekly, choreWeekly, adamPosts, choreP
           <p className="text-sm text-slate-500 mt-0.5">Side-by-side snapshot of both LinkedIn accounts</p>
         </div>
         <div className="flex gap-8">
-          <HealthScoreRing score={adamHealth ?? 0}  color={ADAM_BLUE}   label="Adam"  />
+          <HealthScoreRing score={adamHealth  ?? 0} color={ADAM_BLUE}    label="Adam"  />
           <HealthScoreRing score={choreHealth ?? 0} color={CHORE_PURPLE} label="Chore" />
         </div>
       </div>
@@ -135,7 +135,7 @@ export default function UnifiedView({ adamWeekly, choreWeekly, adamPosts, choreP
           choreSub={choreGoals.engagement ? `Goal: ${choreGoals.engagement}%` : null}
         />
 
-        {/* Adam-only: Posts Published (Chore_Weekly has no Posts_Published column) */}
+        {/* Adam-only: Posts Published */}
         <MetricCard
           label="Adam — Posts Published"
           value={String(adamPostCount)}
@@ -156,6 +156,8 @@ export default function UnifiedView({ adamWeekly, choreWeekly, adamPosts, choreP
         adamWeekly={adamWeekly}
         choreWeekly={choreWeekly}
         goals={goals}
+        year={year}
+        month={month}
       />
     </div>
   );
