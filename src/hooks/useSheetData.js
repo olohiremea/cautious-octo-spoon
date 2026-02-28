@@ -1,17 +1,5 @@
 import { useState, useCallback } from 'react';
-import {
-  SHEET_BASE_URL,
-  SHEET_NAMES,
-  USE_MOCK_DATA,
-  SHEET_ID,
-} from '../config';
-import {
-  mockAdamWeekly,
-  mockChoreWeekly,
-  mockAdamPosts,
-  mockChorePosts,
-  mockGoals,
-} from '../mockData';
+import { SHEET_BASE_URL, SHEET_NAMES } from '../config';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Google Visualization API response parser
@@ -65,29 +53,15 @@ export default function useSheetData() {
     setLoading(true);
     setError(null);
     try {
-      let sheets;
-
-      if (USE_MOCK_DATA || SHEET_ID === 'YOUR_SHEET_ID_HERE') {
-        // Simulate a brief network delay so the loading skeleton is visible
-        await new Promise((r) => setTimeout(r, 900));
-        sheets = {
-          adamWeekly: mockAdamWeekly,
-          choreWeekly: mockChoreWeekly,
-          adamPosts: mockAdamPosts,
-          chorePosts: mockChorePosts,
-          goals: mockGoals,
-        };
-      } else {
-        const [adamWeekly, choreWeekly, adamPosts, chorePosts, goals] =
-          await Promise.all([
-            fetchSheet(SHEET_NAMES.ADAM_WEEKLY),
-            fetchSheet(SHEET_NAMES.CHORE_WEEKLY),
-            fetchSheet(SHEET_NAMES.ADAM_POSTS),
-            fetchSheet(SHEET_NAMES.CHORE_POSTS),
-            fetchSheet(SHEET_NAMES.GOALS),
-          ]);
-        sheets = { adamWeekly, choreWeekly, adamPosts, chorePosts, goals };
-      }
+      const [adamWeekly, choreWeekly, adamPosts, chorePosts, goals] =
+        await Promise.all([
+          fetchSheet(SHEET_NAMES.ADAM_WEEKLY),
+          fetchSheet(SHEET_NAMES.CHORE_WEEKLY),
+          fetchSheet(SHEET_NAMES.ADAM_POSTS),
+          fetchSheet(SHEET_NAMES.CHORE_POSTS),
+          fetchSheet(SHEET_NAMES.GOALS),
+        ]);
+      const sheets = { adamWeekly, choreWeekly, adamPosts, chorePosts, goals };
 
       setData(sheets);
       setLastUpdated(new Date());

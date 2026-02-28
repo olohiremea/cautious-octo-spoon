@@ -3,14 +3,12 @@ import ComparisonCard from './ComparisonCard';
 import MetricCard from './MetricCard';
 import HealthScoreRing from './HealthScoreRing';
 import { CombinedFollowerChart } from './FollowerChart';
+import AIInsights from './AIInsights';
 import {
-  currentMonthYM,
-  lastMonthYM,
   getFollowerGrowth,
   getTotalImpressions,
   getAvgEngagementRate,
   getTotalPosts,
-  getTotalProfileViews,
   getCurrentFollowers,
   isOnTrack,
   findGoal,
@@ -18,79 +16,73 @@ import {
   formatNumber,
 } from '../utils/dataHelpers';
 
-const ADAM_BLUE = '#3B82F6';
+const ADAM_BLUE   = '#3B82F6';
 const CHORE_PURPLE = '#8B5CF6';
 
-export default function UnifiedView({ adamWeekly, choreWeekly, goals }) {
-  const { year: cy, month: cm } = currentMonthYM();
-  const { year: ly, month: lm } = lastMonthYM();
+export default function UnifiedView({ adamWeekly, choreWeekly, adamPosts, chorePosts, goals, year, month }) {
+  // Derive "last month" from selected year/month
+  const ly = month === 0 ? year - 1 : year;
+  const lm = month === 0 ? 11 : month - 1;
+
+  const cy = year;
+  const cm = month;
 
   const metrics = useMemo(() => {
     // ── Adam ───────────────────────────────────────────────────────────────
-    const adamFollowers = getCurrentFollowers(adamWeekly);
-    const adamGrowth = getFollowerGrowth(adamWeekly, cy, cm);
+    const adamFollowers   = getCurrentFollowers(adamWeekly);
+    const adamGrowth      = getFollowerGrowth(adamWeekly, cy, cm);
     const adamImpressions = getTotalImpressions(adamWeekly, cy, cm);
-    const adamEngagement = getAvgEngagementRate(adamWeekly, cy, cm);
-    const adamPosts = getTotalPosts(adamWeekly, cy, cm);
-    const adamProfileViews = getTotalProfileViews(adamWeekly, cy, cm);
+    const adamEngagement  = getAvgEngagementRate(adamWeekly, cy, cm);
+    const adamPostCount   = getTotalPosts(adamWeekly, cy, cm);
 
     // ── Chore ──────────────────────────────────────────────────────────────
-    const choreFollowers = getCurrentFollowers(choreWeekly);
-    const choreGrowth = getFollowerGrowth(choreWeekly, cy, cm);
+    const choreFollowers   = getCurrentFollowers(choreWeekly);
+    const choreGrowth      = getFollowerGrowth(choreWeekly, cy, cm);
     const choreImpressions = getTotalImpressions(choreWeekly, cy, cm);
-    const choreEngagement = getAvgEngagementRate(choreWeekly, cy, cm);
-    const chorePosts = getTotalPosts(choreWeekly, cy, cm);
+    const choreEngagement  = getAvgEngagementRate(choreWeekly, cy, cm);
 
     // ── Goals ──────────────────────────────────────────────────────────────
     const adamGoals = {
-      growth: findGoal(goals, 'Adam', 'Followers_Growth'),
+      growth:      findGoal(goals, 'Adam', 'Followers_Growth'),
       impressions: findGoal(goals, 'Adam', 'Impressions'),
-      engagement: findGoal(goals, 'Adam', 'Engagement_Rate'),
-      posts: findGoal(goals, 'Adam', 'Posts_Published'),
-      profileViews: findGoal(goals, 'Adam', 'Profile_Views'),
+      engagement:  findGoal(goals, 'Adam', 'Engagement_Rate'),
+      posts:       findGoal(goals, 'Adam', 'Posts_Published'),
     };
     const choreGoals = {
-      growth: findGoal(goals, 'Chore', 'Followers_Growth'),
+      growth:      findGoal(goals, 'Chore', 'Followers_Growth'),
       impressions: findGoal(goals, 'Chore', 'Impressions'),
-      engagement: findGoal(goals, 'Chore', 'Engagement_Rate'),
-      posts: findGoal(goals, 'Chore', 'Posts_Published'),
+      engagement:  findGoal(goals, 'Chore', 'Engagement_Rate'),
     };
 
     // ── On-track flags ─────────────────────────────────────────────────────
     const adamTracking = [
-      isOnTrack(adamGrowth, adamGoals.growth),
+      isOnTrack(adamGrowth,      adamGoals.growth),
       isOnTrack(adamImpressions, adamGoals.impressions),
-      isOnTrack(adamEngagement, adamGoals.engagement),
-      isOnTrack(adamPosts, adamGoals.posts),
-      isOnTrack(adamProfileViews, adamGoals.profileViews),
+      isOnTrack(adamEngagement,  adamGoals.engagement),
+      isOnTrack(adamPostCount,   adamGoals.posts),
     ];
     const choreTracking = [
-      isOnTrack(choreGrowth, choreGoals.growth),
+      isOnTrack(choreGrowth,      choreGoals.growth),
       isOnTrack(choreImpressions, choreGoals.impressions),
-      isOnTrack(choreEngagement, choreGoals.engagement),
-      isOnTrack(chorePosts, choreGoals.posts),
+      isOnTrack(choreEngagement,  choreGoals.engagement),
     ];
 
-    const adamHealth = calculateHealthScore(adamTracking);
-    const choreHealth = calculateHealthScore(choreTracking);
-
     return {
-      adamFollowers, adamGrowth, adamImpressions, adamEngagement, adamPosts, adamProfileViews,
-      choreFollowers, choreGrowth, choreImpressions, choreEngagement, chorePosts,
-      adamGoals, choreGoals, adamTracking, choreTracking,
-      adamHealth, choreHealth,
+      adamFollowers, adamGrowth, adamImpressions, adamEngagement, adamPostCount,
+      choreFollowers, choreGrowth, choreImpressions, choreEngagement,
+      adamGoals, choreGoals,
+      adamHealth:  calculateHealthScore(adamTracking),
+      choreHealth: calculateHealthScore(choreTracking),
     };
   }, [adamWeekly, choreWeekly, goals, cy, cm]);
 
   const {
-    adamFollowers, adamGrowth, adamImpressions, adamEngagement, adamPosts, adamProfileViews,
-    choreFollowers, choreGrowth, choreImpressions, choreEngagement, chorePosts,
-    adamGoals, choreGoals, adamTracking, choreTracking,
-    adamHealth, choreHealth,
+    adamFollowers, adamGrowth, adamImpressions, adamEngagement, adamPostCount,
+    choreFollowers, choreGrowth, choreImpressions, choreEngagement,
+    adamGoals, choreGoals, adamHealth, choreHealth,
   } = metrics;
 
-  const now = new Date();
-  const monthName = now.toLocaleString('default', { month: 'long', year: 'numeric' });
+  const monthName = new Date(year, month, 1).toLocaleString('default', { month: 'long', year: 'numeric' });
 
   return (
     <div className="space-y-6">
@@ -101,7 +93,7 @@ export default function UnifiedView({ adamWeekly, choreWeekly, goals }) {
           <p className="text-sm text-slate-500 mt-0.5">Side-by-side snapshot of both LinkedIn accounts</p>
         </div>
         <div className="flex gap-8">
-          <HealthScoreRing score={adamHealth ?? 0} color={ADAM_BLUE} label="Adam" />
+          <HealthScoreRing score={adamHealth  ?? 0} color={ADAM_BLUE}    label="Adam"  />
           <HealthScoreRing score={choreHealth ?? 0} color={CHORE_PURPLE} label="Chore" />
         </div>
       </div>
@@ -142,29 +134,31 @@ export default function UnifiedView({ adamWeekly, choreWeekly, goals }) {
           adamSub={adamGoals.engagement ? `Goal: ${adamGoals.engagement}%` : null}
           choreSub={choreGoals.engagement ? `Goal: ${choreGoals.engagement}%` : null}
         />
-        <ComparisonCard
-          label="Posts Published This Month"
-          adamValue={String(adamPosts)}
-          choreValue={String(chorePosts)}
-          adamOnTrack={isOnTrack(adamPosts, adamGoals.posts)}
-          choreOnTrack={isOnTrack(chorePosts, choreGoals.posts)}
-          adamSub={adamGoals.posts ? `Goal: ${adamGoals.posts} posts` : null}
-          choreSub={choreGoals.posts ? `Goal: ${choreGoals.posts} posts` : null}
-        />
 
-        {/* Adam-only profile views card */}
+        {/* Adam-only: Posts Published */}
         <MetricCard
-          label="Adam — Profile Views (this month)"
-          value={formatNumber(adamProfileViews)}
-          onTrack={isOnTrack(adamProfileViews, adamGoals.profileViews)}
+          label="Adam — Posts Published"
+          value={String(adamPostCount)}
+          onTrack={isOnTrack(adamPostCount, adamGoals.posts)}
           accent={ADAM_BLUE}
-          goal={adamGoals.profileViews ? `${formatNumber(adamGoals.profileViews)} views` : null}
-          subLabel="Adam only — Chore does not track profile views"
+          goal={adamGoals.posts ? `${adamGoals.posts} posts` : null}
+          subLabel="Adam only — Chore does not track posts in weekly data"
         />
       </div>
 
       {/* Combined follower chart */}
       <CombinedFollowerChart adamWeekly={adamWeekly} choreWeekly={choreWeekly} />
+
+      {/* AI Insights */}
+      <AIInsights
+        adamPosts={adamPosts}
+        chorePosts={chorePosts}
+        adamWeekly={adamWeekly}
+        choreWeekly={choreWeekly}
+        goals={goals}
+        year={year}
+        month={month}
+      />
     </div>
   );
 }

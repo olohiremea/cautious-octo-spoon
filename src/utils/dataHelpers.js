@@ -2,10 +2,45 @@
 // Data processing utilities for the LinkedIn Analytics Dashboard
 // ─────────────────────────────────────────────────────────────────────────────
 
+/**
+ * Parse a date value coming from the Google Visualization API (gviz/tq endpoint).
+ * The GViz API serialises date cell values as the string "Date(YYYY,M,D)" where
+ * M is 0-indexed (January = 0).  This is true regardless of the cell's display
+ * format in the spreadsheet.
+ *
+ * Also handles ISO (YYYY-MM-DD) and US slash (M/D/YYYY) formats as fallbacks.
+ */
+function parseLocalDate(str) {
+  if (!str) return new Date(NaN);
+  if (str instanceof Date) return str;
+
+  const s = String(str).trim();
+
+  // Google Visualization API: "Date(2026,1,21)"  — month is already 0-indexed
+  const gviz = s.match(/^Date\((\d{4}),(\d{1,2}),(\d{1,2})\)$/);
+  if (gviz) {
+    return new Date(Number(gviz[1]), Number(gviz[2]), Number(gviz[3]));
+  }
+
+  // ISO: "2026-02-21"
+  if (/^\d{4}-\d{2}-\d{2}$/.test(s)) {
+    const [y, m, d] = s.split('-').map(Number);
+    return new Date(y, m - 1, d);
+  }
+
+  // US slash: "2/21/2026" or "02/21/2026"
+  if (/^\d{1,2}\/\d{1,2}\/\d{4}$/.test(s)) {
+    const [m, d, y] = s.split('/').map(Number);
+    return new Date(y, m - 1, d);
+  }
+
+  return new Date(s);
+}
+
 /** Filter weekly rows whose Week date falls in the given month/year */
 export function filterByMonth(weeklyData, year, month) {
   return weeklyData.filter((row) => {
-    const d = new Date(row.Week);
+    const d = parseLocalDate(row.Week);
     return d.getFullYear() === year && d.getMonth() === month;
   });
 }
@@ -73,13 +108,6 @@ export function getTotalPosts(weeklyData, year, month) {
     .reduce((s, r) => s + (r.Posts_Published ?? 0), 0);
 }
 
-// ── Profile view helpers (Adam only) ─────────────────────────────────────────
-
-export function getTotalProfileViews(weeklyData, year, month) {
-  return filterByMonth(weeklyData, year, month)
-    .reduce((s, r) => s + (r.Profile_Views ?? 0), 0);
-}
-
 // ── Goal helpers ─────────────────────────────────────────────────────────────
 
 /** Pro-rated monthly goal based on today's day-of-month */
@@ -112,25 +140,20 @@ export function calculateHealthScore(trackingList) {
 
 // ── Post-level helpers ────────────────────────────────────────────────────────
 
-export function calcPostEngagementRate(post) {
-  const interactions = (post.Likes ?? 0) + (post.Comments ?? 0) + (post.Reposts ?? 0);
-  if (!post.Impressions) return 0;
-  return parseFloat(((interactions / post.Impressions) * 100).toFixed(2));
-}
-
+/** Engagement_Rate is pre-calculated in the sheet — pass posts through unchanged */
 export function enrichPosts(posts) {
-  return posts.map((p) => ({
-    ...p,
-    Engagement_Rate: calcPostEngagementRate(p),
-  }));
+  return posts.map((p) => ({ ...p }));
 }
 
+/**
+ * Returns the average post engagement rate as a **percentage** value (e.g. 2.35).
+ * The posts sheet stores Engagement_Rate as a decimal fraction (e.g. 0.0235),
+ * so we multiply by 100 before returning.
+ */
 export function getAvgPostEngagementRate(posts) {
   if (!posts.length) return 0;
-  const enriched = enrichPosts(posts);
-  return parseFloat(
-    (enriched.reduce((s, p) => s + p.Engagement_Rate, 0) / enriched.length).toFixed(2)
-  );
+  const avg = posts.reduce((s, p) => s + (p.Engagement_Rate ?? 0), 0) / posts.length;
+  return parseFloat((avg * 100).toFixed(2));
 }
 
 // ── Formatting ────────────────────────────────────────────────────────────────
@@ -156,12 +179,12 @@ export function formatChange(current, previous) {
 
 export function formatDate(dateStr) {
   if (!dateStr) return '—';
-  const d = new Date(dateStr);
+  const d = parseLocalDate(dateStr);
   return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
 }
 
 export function formatWeekLabel(dateStr) {
   if (!dateStr) return '';
-  const d = new Date(dateStr);
-  return `${d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}`;
+  const d = parseLocalDate(dateStr);
+  return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
 }

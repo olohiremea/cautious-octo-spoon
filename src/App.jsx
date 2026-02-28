@@ -1,16 +1,56 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import useSheetData from './hooks/useSheetData';
 import LoadingSkeleton from './components/LoadingSkeleton';
 import ErrorState from './components/ErrorState';
 import UnifiedView from './components/UnifiedView';
 import AccountTab from './components/AccountTab';
-import { USE_MOCK_DATA, SHEET_ID } from './config';
+import { currentMonthYM } from './utils/dataHelpers';
 
 const TABS = [
   { id: 'overview', label: 'Unified View' },
-  { id: 'adam', label: "Adam's LinkedIn" },
-  { id: 'chore', label: "Chore's LinkedIn" },
+  { id: 'adam',     label: "Adam's LinkedIn" },
+  { id: 'chore',    label: "Chore's LinkedIn" },
 ];
+
+// Generate the last N months as { year, month } objects, newest first
+function getRecentMonths(n = 6) {
+  const months = [];
+  const now = new Date();
+  for (let i = 0; i < n; i++) {
+    let m = now.getMonth() - i;
+    let y = now.getFullYear();
+    if (m < 0) { m += 12; y -= 1; }
+    months.push({ year: y, month: m });
+  }
+  return months;
+}
+
+const MONTH_NAMES = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+
+function MonthFilter({ selected, onChange }) {
+  const months = useMemo(() => getRecentMonths(6), []);
+  return (
+    <div className="flex flex-wrap gap-2 items-center">
+      <span className="text-xs text-slate-500 mr-1 font-medium uppercase tracking-wider">Period:</span>
+      {months.map(({ year, month }) => {
+        const active = selected.year === year && selected.month === month;
+        return (
+          <button
+            key={`${year}-${month}`}
+            onClick={() => onChange({ year, month })}
+            className={`rounded-full px-3 py-1 text-xs font-medium transition-colors ring-1 ${
+              active
+                ? 'bg-blue-600 text-white ring-blue-500'
+                : 'bg-slate-800 text-slate-400 ring-slate-700 hover:bg-slate-700 hover:text-slate-200'
+            }`}
+          >
+            {MONTH_NAMES[month]} {year}
+          </button>
+        );
+      })}
+    </div>
+  );
+}
 
 function LinkedInIcon({ className }) {
   return (
@@ -39,13 +79,11 @@ function RefreshIcon({ spinning }) {
 }
 
 export default function App() {
-  const [activeTab, setActiveTab] = useState('overview');
+  const [activeTab, setActiveTab]   = useState('overview');
+  const [selectedYM, setSelectedYM] = useState(currentMonthYM);
   const { data, loading, error, lastUpdated, load } = useSheetData();
 
-  // Load data on mount
-  useEffect(() => {
-    load();
-  }, [load]);
+  useEffect(() => { load(); }, [load]);
 
   const formattedTime = lastUpdated
     ? lastUpdated.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })
@@ -57,20 +95,12 @@ export default function App() {
       <header className="sticky top-0 z-20 border-b border-slate-700/60 bg-slate-900/95 backdrop-blur">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <div className="flex h-14 items-center justify-between gap-4">
-            {/* Logo / title */}
             <div className="flex items-center gap-2.5">
               <LinkedInIcon className="h-6 w-6 text-blue-500" />
               <span className="text-base font-bold text-slate-100 tracking-tight">
                 LinkedIn Analytics
               </span>
-              {(USE_MOCK_DATA || SHEET_ID === 'YOUR_SHEET_ID_HERE') && (
-                <span className="rounded-full bg-amber-500/15 px-2 py-0.5 text-xs font-semibold text-amber-400 ring-1 ring-amber-500/30">
-                  Demo Data
-                </span>
-              )}
             </div>
-
-            {/* Right controls */}
             <div className="flex items-center gap-3">
               {formattedTime && (
                 <span className="hidden sm:block text-xs text-slate-500">
@@ -110,6 +140,13 @@ export default function App() {
         </div>
       </header>
 
+      {/* ── Month filter bar ────────────────────────────────────────────────── */}
+      <div className="border-b border-slate-800 bg-slate-900/80">
+        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-3">
+          <MonthFilter selected={selectedYM} onChange={setSelectedYM} />
+        </div>
+      </div>
+
       {/* ── Main content ───────────────────────────────────────────────────── */}
       <main className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-6">
         {loading && <LoadingSkeleton />}
@@ -124,7 +161,11 @@ export default function App() {
               <UnifiedView
                 adamWeekly={data.adamWeekly}
                 choreWeekly={data.choreWeekly}
+                adamPosts={data.adamPosts}
+                chorePosts={data.chorePosts}
                 goals={data.goals}
+                year={selectedYM.year}
+                month={selectedYM.month}
               />
             )}
             {activeTab === 'adam' && (
@@ -133,6 +174,8 @@ export default function App() {
                 weeklyData={data.adamWeekly}
                 postsData={data.adamPosts}
                 goals={data.goals}
+                year={selectedYM.year}
+                month={selectedYM.month}
               />
             )}
             {activeTab === 'chore' && (
@@ -141,6 +184,8 @@ export default function App() {
                 weeklyData={data.choreWeekly}
                 postsData={data.chorePosts}
                 goals={data.goals}
+                year={selectedYM.year}
+                month={selectedYM.month}
               />
             )}
           </>
@@ -150,10 +195,7 @@ export default function App() {
       {/* ── Footer ─────────────────────────────────────────────────────────── */}
       <footer className="border-t border-slate-800 mt-8 py-4">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 text-center text-xs text-slate-600">
-          LinkedIn Analytics Dashboard · Data sourced from Google Sheets ·{' '}
-          {USE_MOCK_DATA || SHEET_ID === 'YOUR_SHEET_ID_HERE'
-            ? 'Currently showing demo data — update SHEET_ID in src/config.js to connect your sheet'
-            : 'Live data'}
+          LinkedIn Analytics Dashboard · Data sourced from Google Sheets · Live data
         </div>
       </footer>
     </div>

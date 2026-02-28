@@ -4,16 +4,12 @@ import PostsTable from './PostsTable';
 import { SingleFollowerChart } from './FollowerChart';
 import ImpressionsChart from './ImpressionsChart';
 import EngagementChart from './EngagementChart';
-import ProfileViewsChart from './ProfileViewsChart';
 import HealthScoreRing from './HealthScoreRing';
 import {
-  currentMonthYM,
-  lastMonthYM,
   getFollowerGrowth,
   getTotalImpressions,
   getAvgEngagementRate,
   getTotalPosts,
-  getTotalProfileViews,
   getCurrentFollowers,
   isOnTrack,
   findGoal,
@@ -22,48 +18,44 @@ import {
   formatChange,
 } from '../utils/dataHelpers';
 
-export default function AccountTab({ account, weeklyData, postsData, goals }) {
+export default function AccountTab({ account, weeklyData, postsData, goals, year, month }) {
   const isAdam = account === 'Adam';
   const color = isAdam ? '#3B82F6' : '#8B5CF6';
 
-  const { year: cy, month: cm } = currentMonthYM();
-  const { year: ly, month: lm } = lastMonthYM();
+  // Derive "last month" from the selected year/month
+  const ly = month === 0 ? year - 1 : year;
+  const lm = month === 0 ? 11 : month - 1;
+
+  const cy = year;
+  const cm = month;
 
   const metrics = useMemo(() => {
-    // Current month
     const followers = getCurrentFollowers(weeklyData);
     const growth = getFollowerGrowth(weeklyData, cy, cm);
     const impressions = getTotalImpressions(weeklyData, cy, cm);
     const engagement = getAvgEngagementRate(weeklyData, cy, cm);
-    const posts = getTotalPosts(weeklyData, cy, cm);
 
-    // Last month (for change %)
     const growthLast = getFollowerGrowth(weeklyData, ly, lm);
     const impressionsLast = getTotalImpressions(weeklyData, ly, lm);
     const engagementLast = getAvgEngagementRate(weeklyData, ly, lm);
-    const postsLast = getTotalPosts(weeklyData, ly, lm);
 
-    // Profile views (Adam only)
-    const profileViews = isAdam ? getTotalProfileViews(weeklyData, cy, cm) : null;
-    const profileViewsLast = isAdam ? getTotalProfileViews(weeklyData, ly, lm) : null;
+    // Posts Published — Adam only
+    const posts = isAdam ? getTotalPosts(weeklyData, cy, cm) : null;
+    const postsLast = isAdam ? getTotalPosts(weeklyData, ly, lm) : null;
 
-    // Goals
     const goalGrowth = findGoal(goals, account, 'Followers_Growth');
     const goalImpressions = findGoal(goals, account, 'Impressions');
     const goalEngagement = findGoal(goals, account, 'Engagement_Rate');
-    const goalPosts = findGoal(goals, account, 'Posts_Published');
-    const goalProfileViews = isAdam ? findGoal(goals, account, 'Profile_Views') : null;
+    const goalPosts = isAdam ? findGoal(goals, account, 'Posts_Published') : null;
 
-    // On-track
     const growthOT = isOnTrack(growth, goalGrowth);
     const impressionsOT = isOnTrack(impressions, goalImpressions);
     const engagementOT = isOnTrack(engagement, goalEngagement);
-    const postsOT = isOnTrack(posts, goalPosts);
-    const profileViewsOT = isAdam ? isOnTrack(profileViews, goalProfileViews) : null;
+    const postsOT = isAdam ? isOnTrack(posts, goalPosts) : null;
 
     const trackingList = isAdam
-      ? [growthOT, impressionsOT, engagementOT, postsOT, profileViewsOT]
-      : [growthOT, impressionsOT, engagementOT, postsOT];
+      ? [growthOT, impressionsOT, engagementOT, postsOT]
+      : [growthOT, impressionsOT, engagementOT];
 
     const healthScore = calculateHealthScore(trackingList);
 
@@ -72,17 +64,15 @@ export default function AccountTab({ account, weeklyData, postsData, goals }) {
       growth, growthChange: formatChange(growth, growthLast),
       impressions, impressionsChange: formatChange(impressions, impressionsLast),
       engagement, engagementChange: formatChange(engagement, engagementLast),
-      posts, postsChange: formatChange(posts, postsLast),
-      profileViews, profileViewsChange: isAdam ? formatChange(profileViews, profileViewsLast) : null,
-      goalGrowth, goalImpressions, goalEngagement, goalPosts, goalProfileViews,
-      growthOT, impressionsOT, engagementOT, postsOT, profileViewsOT,
+      posts, postsChange: isAdam ? formatChange(posts, postsLast) : null,
+      goalGrowth, goalImpressions, goalEngagement, goalPosts,
+      growthOT, impressionsOT, engagementOT, postsOT,
       healthScore,
     };
   }, [weeklyData, goals, account, cy, cm, ly, lm, isAdam]);
 
   const m = metrics;
-  const now = new Date();
-  const monthName = now.toLocaleString('default', { month: 'long', year: 'numeric' });
+  const monthName = new Date(year, month, 1).toLocaleString('default', { month: 'long', year: 'numeric' });
 
   return (
     <div className="space-y-6">
@@ -100,7 +90,7 @@ export default function AccountTab({ account, weeklyData, postsData, goals }) {
       </div>
 
       {/* High-level metric cards */}
-      <div className={`grid grid-cols-1 sm:grid-cols-2 ${isAdam ? 'lg:grid-cols-3' : 'lg:grid-cols-4'} gap-4`}>
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <MetricCard
           label="Total Followers"
           value={formatNumber(m.followers)}
@@ -134,44 +124,28 @@ export default function AccountTab({ account, weeklyData, postsData, goals }) {
           goal={m.goalEngagement ? `${m.goalEngagement}%` : null}
           subLabel="This month average"
         />
-        <MetricCard
-          label="Posts Published"
-          value={String(m.posts)}
-          change={m.postsChange}
-          onTrack={m.postsOT}
-          accent={color}
-          goal={m.goalPosts ? `${m.goalPosts} posts` : null}
-          subLabel="This month"
-        />
         {isAdam && (
           <MetricCard
-            label="Profile Views"
-            value={formatNumber(m.profileViews)}
-            change={m.profileViewsChange}
-            onTrack={m.profileViewsOT}
+            label="Posts Published"
+            value={String(m.posts)}
+            change={m.postsChange}
+            onTrack={m.postsOT}
             accent={color}
-            goal={m.goalProfileViews ? formatNumber(m.goalProfileViews) : null}
-            subLabel="This month total"
+            goal={m.goalPosts ? `${m.goalPosts} posts` : null}
+            subLabel="This month"
           />
         )}
       </div>
 
-      {/* Charts grid */}
+      {/* Charts */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         <SingleFollowerChart weeklyData={weeklyData} color={color} label="Followers" />
         <ImpressionsChart weeklyData={weeklyData} color={color} />
       </div>
-      <div className={`grid grid-cols-1 ${isAdam ? 'lg:grid-cols-2' : ''} gap-4`}>
-        <EngagementChart
-          weeklyData={weeklyData}
-          color={color}
-          goalRate={m.goalEngagement}
-        />
-        {isAdam && <ProfileViewsChart weeklyData={weeklyData} />}
-      </div>
+      <EngagementChart weeklyData={weeklyData} color={color} goalRate={m.goalEngagement} />
 
       {/* Posts table */}
-      <PostsTable posts={postsData} accentColor={color} />
+      <PostsTable posts={postsData} account={account} accentColor={color} />
     </div>
   );
 }

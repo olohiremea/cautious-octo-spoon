@@ -1,16 +1,23 @@
 import { useState, useMemo } from 'react';
-import { enrichPosts, getAvgPostEngagementRate, formatNumber, formatDate } from '../utils/dataHelpers';
+import { getAvgPostEngagementRate, formatNumber } from '../utils/dataHelpers';
 
 const PAGE_SIZE = 10;
 
-const COLUMNS = [
-  { key: 'Date', label: 'Date', sortable: true },
-  { key: 'Post_Preview', label: 'Post Preview', sortable: false },
-  { key: 'Impressions', label: 'Impressions', sortable: true },
-  { key: 'Likes', label: 'Likes', sortable: true },
-  { key: 'Comments', label: 'Comments', sortable: true },
-  { key: 'Reposts', label: 'Reposts', sortable: true },
-  { key: 'Engagement_Rate', label: 'Eng. Rate', sortable: true },
+const ADAM_COLUMNS = [
+  { key: 'Format',           label: 'Format',          sortable: true  },
+  { key: 'Post_Preview',     label: 'Preview',          sortable: false },
+  { key: 'Impressions',      label: 'Impressions',      sortable: true  },
+  { key: 'Engagements',      label: 'Engagements',      sortable: true  },
+  { key: 'Engagement_Rate',  label: 'Eng. Rate',        sortable: true  },
+  { key: 'Profile_Views',    label: 'Profile Views',    sortable: true  },
+  { key: 'Followers_Gained', label: 'Followers Gained', sortable: true  },
+];
+
+const CHORE_COLUMNS = [
+  { key: 'Post_Preview',     label: 'Preview',     sortable: false },
+  { key: 'Impressions',      label: 'Impressions', sortable: true  },
+  { key: 'Engagements',      label: 'Engagements', sortable: true  },
+  { key: 'Engagement_Rate',  label: 'Eng. Rate',   sortable: true  },
 ];
 
 function SortIcon({ direction }) {
@@ -18,27 +25,25 @@ function SortIcon({ direction }) {
   return <span className="ml-1 text-blue-400">{direction === 'asc' ? '↑' : '↓'}</span>;
 }
 
-export default function PostsTable({ posts, accentColor = '#3B82F6' }) {
-  const [sortKey, setSortKey] = useState('Date');
+export default function PostsTable({ posts, account = 'Adam', accentColor = '#3B82F6' }) {
+  const COLUMNS = account === 'Adam' ? ADAM_COLUMNS : CHORE_COLUMNS;
+
+  const [sortKey, setSortKey] = useState('Impressions');
   const [sortDir, setSortDir] = useState('desc');
   const [page, setPage] = useState(1);
 
-  const enriched = useMemo(() => enrichPosts(posts), [posts]);
+  // avgRate is already in % units (getAvgPostEngagementRate multiplies by 100)
   const avgRate = useMemo(() => getAvgPostEngagementRate(posts), [posts]);
 
   const sorted = useMemo(() => {
-    return [...enriched].sort((a, b) => {
-      let va = a[sortKey];
-      let vb = b[sortKey];
-      if (sortKey === 'Date') {
-        va = new Date(va);
-        vb = new Date(vb);
-      }
+    return [...posts].sort((a, b) => {
+      const va = a[sortKey] ?? '';
+      const vb = b[sortKey] ?? '';
       if (va < vb) return sortDir === 'asc' ? -1 : 1;
       if (va > vb) return sortDir === 'asc' ? 1 : -1;
       return 0;
     });
-  }, [enriched, sortKey, sortDir]);
+  }, [posts, sortKey, sortDir]);
 
   const totalPages = Math.max(1, Math.ceil(sorted.length / PAGE_SIZE));
   const pageItems = sorted.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
@@ -54,9 +59,50 @@ export default function PostsTable({ posts, accentColor = '#3B82F6' }) {
     setPage(1);
   }
 
-  function engRateColor(rate) {
-    if (rate >= avgRate) return 'text-emerald-400 font-semibold';
-    return 'text-red-400';
+  // rate is already converted to % before calling this
+  function engRateColor(ratePct) {
+    return ratePct >= avgRate ? 'text-emerald-400 font-semibold' : 'text-red-400';
+  }
+
+  function renderCell(post, col) {
+    const val = post[col.key];
+
+    if (col.key === 'Engagement_Rate') {
+      // Sheet stores as decimal fraction; multiply × 100 for display
+      const pct = val != null ? parseFloat((val * 100).toFixed(2)) : null;
+      return (
+        <td key={col.key} className={`px-4 py-3 whitespace-nowrap tabular-nums ${engRateColor(pct ?? 0)}`}>
+          {pct != null ? `${pct}%` : '—'}
+        </td>
+      );
+    }
+
+    if (col.key === 'Format') {
+      return (
+        <td key={col.key} className="px-4 py-3 whitespace-nowrap">
+          <span className="rounded-full bg-slate-700 px-2 py-0.5 text-xs font-medium text-slate-300">
+            {val ?? '—'}
+          </span>
+        </td>
+      );
+    }
+
+    if (col.key === 'Post_Preview') {
+      const text = val ?? '';
+      return (
+        <td key={col.key} className="px-4 py-3 text-slate-300 max-w-xs">
+          <span className="line-clamp-2 text-sm leading-snug">
+            {text.length > 80 ? text.slice(0, 80) + '…' : text || '—'}
+          </span>
+        </td>
+      );
+    }
+
+    return (
+      <td key={col.key} className="px-4 py-3 whitespace-nowrap text-slate-300 tabular-nums">
+        {formatNumber(val)}
+      </td>
+    );
   }
 
   return (
@@ -93,35 +139,12 @@ export default function PostsTable({ posts, accentColor = '#3B82F6' }) {
           <tbody className="divide-y divide-slate-700/60">
             {pageItems.map((post, idx) => (
               <tr key={idx} className="hover:bg-slate-700/30 transition-colors">
-                <td className="px-4 py-3 whitespace-nowrap text-slate-300">
-                  {formatDate(post.Date)}
-                </td>
-                <td className="px-4 py-3 text-slate-300 max-w-xs">
-                  <span className="line-clamp-2 text-sm">
-                    {(post.Post_Preview ?? '').slice(0, 60)}
-                    {(post.Post_Preview ?? '').length > 60 ? '…' : ''}
-                  </span>
-                </td>
-                <td className="px-4 py-3 whitespace-nowrap text-slate-300 tabular-nums">
-                  {formatNumber(post.Impressions)}
-                </td>
-                <td className="px-4 py-3 whitespace-nowrap text-slate-300 tabular-nums">
-                  {formatNumber(post.Likes)}
-                </td>
-                <td className="px-4 py-3 whitespace-nowrap text-slate-300 tabular-nums">
-                  {formatNumber(post.Comments)}
-                </td>
-                <td className="px-4 py-3 whitespace-nowrap text-slate-300 tabular-nums">
-                  {formatNumber(post.Reposts)}
-                </td>
-                <td className={`px-4 py-3 whitespace-nowrap tabular-nums ${engRateColor(post.Engagement_Rate)}`}>
-                  {post.Engagement_Rate}%
-                </td>
+                {COLUMNS.map((col) => renderCell(post, col))}
               </tr>
             ))}
             {!pageItems.length && (
               <tr>
-                <td colSpan={7} className="px-4 py-8 text-center text-slate-500">
+                <td colSpan={COLUMNS.length} className="px-4 py-8 text-center text-slate-500">
                   No posts found
                 </td>
               </tr>
@@ -130,7 +153,6 @@ export default function PostsTable({ posts, accentColor = '#3B82F6' }) {
         </table>
       </div>
 
-      {/* Pagination */}
       {totalPages > 1 && (
         <div className="flex items-center justify-between px-5 py-3 border-t border-slate-700">
           <span className="text-xs text-slate-500">
@@ -150,9 +172,7 @@ export default function PostsTable({ posts, accentColor = '#3B82F6' }) {
                 key={p}
                 onClick={() => setPage(p)}
                 className={`rounded px-3 py-1.5 text-xs font-medium transition-colors ${
-                  p === page
-                    ? 'text-white'
-                    : 'text-slate-400 hover:bg-slate-700'
+                  p === page ? 'text-white' : 'text-slate-400 hover:bg-slate-700'
                 }`}
                 style={p === page ? { backgroundColor: accentColor } : {}}
               >
