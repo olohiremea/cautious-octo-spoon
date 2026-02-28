@@ -119,6 +119,8 @@ export default function App() {
               <UnifiedView
                 adamWeekly={data.adamWeekly}
                 choreWeekly={data.choreWeekly}
+                adamPosts={data.adamPosts}
+                chorePosts={data.chorePosts}
                 goals={data.goals}
               />
             )}

@@ -2,10 +2,17 @@
 // Data processing utilities for the LinkedIn Analytics Dashboard
 // ─────────────────────────────────────────────────────────────────────────────
 
+/** Parse a YYYY-MM-DD string as local midnight (avoids UTC timezone shift) */
+function parseLocalDate(str) {
+  if (!str) return new Date(NaN);
+  const [y, m, d] = String(str).split('-').map(Number);
+  return new Date(y, m - 1, d);
+}
+
 /** Filter weekly rows whose Week date falls in the given month/year */
 export function filterByMonth(weeklyData, year, month) {
   return weeklyData.filter((row) => {
-    const d = new Date(row.Week);
+    const d = parseLocalDate(row.Week);
     return d.getFullYear() === year && d.getMonth() === month;
   });
 }
@@ -73,13 +80,6 @@ export function getTotalPosts(weeklyData, year, month) {
     .reduce((s, r) => s + (r.Posts_Published ?? 0), 0);
 }
 
-// ── Profile view helpers (Adam only) ─────────────────────────────────────────
-
-export function getTotalProfileViews(weeklyData, year, month) {
-  return filterByMonth(weeklyData, year, month)
-    .reduce((s, r) => s + (r.Profile_Views ?? 0), 0);
-}
-
 // ── Goal helpers ─────────────────────────────────────────────────────────────
 
 /** Pro-rated monthly goal based on today's day-of-month */
@@ -112,24 +112,15 @@ export function calculateHealthScore(trackingList) {
 
 // ── Post-level helpers ────────────────────────────────────────────────────────
 
-export function calcPostEngagementRate(post) {
-  const interactions = (post.Likes ?? 0) + (post.Comments ?? 0) + (post.Reposts ?? 0);
-  if (!post.Impressions) return 0;
-  return parseFloat(((interactions / post.Impressions) * 100).toFixed(2));
-}
-
+/** Engagement_Rate is pre-calculated in the sheet — pass posts through unchanged */
 export function enrichPosts(posts) {
-  return posts.map((p) => ({
-    ...p,
-    Engagement_Rate: calcPostEngagementRate(p),
-  }));
+  return posts.map((p) => ({ ...p }));
 }
 
 export function getAvgPostEngagementRate(posts) {
   if (!posts.length) return 0;
-  const enriched = enrichPosts(posts);
   return parseFloat(
-    (enriched.reduce((s, p) => s + p.Engagement_Rate, 0) / enriched.length).toFixed(2)
+    (posts.reduce((s, p) => s + (p.Engagement_Rate ?? 0), 0) / posts.length).toFixed(2)
   );
 }
 
@@ -156,12 +147,12 @@ export function formatChange(current, previous) {
 
 export function formatDate(dateStr) {
   if (!dateStr) return '—';
-  const d = new Date(dateStr);
+  const d = parseLocalDate(dateStr);
   return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
 }
 
 export function formatWeekLabel(dateStr) {
   if (!dateStr) return '';
-  const d = new Date(dateStr);
-  return `${d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}`;
+  const d = parseLocalDate(dateStr);
+  return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
 }
