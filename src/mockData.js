@@ -16,6 +16,7 @@ export const mockAdamWeekly = [
   { Week: '2026-02-07', Followers: 5951, Impressions: 7200, Engagement_Rate: 4.5, Posts_Published: 5, Profile_Views: 382 },
   { Week: '2026-02-14', Followers: 6104, Impressions: 7800, Engagement_Rate: 4.8, Posts_Published: 5, Profile_Views: 421 },
   { Week: '2026-02-21', Followers: 6223, Impressions: 6500, Engagement_Rate: 4.2, Posts_Published: 4, Profile_Views: 347 },
+  { Week: '2026-02-28', Followers: 6318, Impressions: 1980, Engagement_Rate: 3.6, Posts_Published: 1, Profile_Views: 264 },
 ];
 
 export const mockChoreWeekly = [
@@ -31,6 +32,7 @@ export const mockChoreWeekly = [
   { Week: '2026-02-07', Followers: 2452, Impressions: 3420, Engagement_Rate: 3.2, Posts_Published: 3 },
   { Week: '2026-02-14', Followers: 2543, Impressions: 3780, Engagement_Rate: 3.5, Posts_Published: 3 },
   { Week: '2026-02-21', Followers: 2614, Impressions: 3200, Engagement_Rate: 3.0, Posts_Published: 2 },
+  { Week: '2026-02-28', Followers: 2661, Impressions: 420, Engagement_Rate: 2.6, Posts_Published: 1 },
 ];
 
 export const mockAdamPosts = [
@@ -75,12 +77,12 @@ export const mockChorePosts = [
 
 export const mockGoals = [
   { Account: 'Adam', Metric: 'Followers_Growth', Monthly_Goal: 450 },
-  { Account: 'Adam', Metric: 'Impressions', Monthly_Goal: 24000 },
+  { Account: 'Adam', Metric: 'Impressions', Monthly_Goal: 40000 },
   { Account: 'Adam', Metric: 'Engagement_Rate', Monthly_Goal: 3.5 },
   { Account: 'Adam', Metric: 'Posts_Published', Monthly_Goal: 15 },
   { Account: 'Adam', Metric: 'Profile_Views', Monthly_Goal: 1100 },
   { Account: 'Chore', Metric: 'Followers_Growth', Monthly_Goal: 220 },
-  { Account: 'Chore', Metric: 'Impressions', Monthly_Goal: 11000 },
+  { Account: 'Chore', Metric: 'Impressions', Monthly_Goal: 10000 },
   { Account: 'Chore', Metric: 'Engagement_Rate', Monthly_Goal: 2.8 },
   { Account: 'Chore', Metric: 'Posts_Published', Monthly_Goal: 10 },
 ];

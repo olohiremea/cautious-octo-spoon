@@ -28,6 +28,7 @@ export default function AccountTab({ account, weeklyData, postsData, goals }) {
 
   const { year: cy, month: cm } = currentMonthYM();
   const { year: ly, month: lm } = lastMonthYM();
+  const cd = new Date().getDate(); // current day-of-month; keeps pro-rating fresh daily
 
   const metrics = useMemo(() => {
     // Current month
@@ -78,7 +79,7 @@ export default function AccountTab({ account, weeklyData, postsData, goals }) {
       growthOT, impressionsOT, engagementOT, postsOT, profileViewsOT,
       healthScore,
     };
-  }, [weeklyData, goals, account, cy, cm, ly, lm, isAdam]);
+  }, [weeklyData, goals, account, cy, cm, ly, lm, isAdam, cd]);
 
   const m = metrics;
   const now = new Date();
