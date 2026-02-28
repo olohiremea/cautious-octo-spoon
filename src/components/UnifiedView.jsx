@@ -24,6 +24,7 @@ const CHORE_PURPLE = '#8B5CF6';
 export default function UnifiedView({ adamWeekly, choreWeekly, goals }) {
   const { year: cy, month: cm } = currentMonthYM();
   const { year: ly, month: lm } = lastMonthYM();
+  const cd = new Date().getDate(); // current day-of-month; keeps pro-rating fresh daily
 
   const metrics = useMemo(() => {
     // ── Adam ───────────────────────────────────────────────────────────────
@@ -80,7 +81,7 @@ export default function UnifiedView({ adamWeekly, choreWeekly, goals }) {
       adamGoals, choreGoals, adamTracking, choreTracking,
       adamHealth, choreHealth,
     };
-  }, [adamWeekly, choreWeekly, goals, cy, cm]);
+  }, [adamWeekly, choreWeekly, goals, cy, cm, cd]);
 
   const {
     adamFollowers, adamGrowth, adamImpressions, adamEngagement, adamPosts, adamProfileViews,
