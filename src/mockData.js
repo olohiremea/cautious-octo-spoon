@@ -77,12 +77,12 @@ export const mockChorePosts = [
 
 export const mockGoals = [
   { Account: 'Adam', Metric: 'Followers_Growth', Monthly_Goal: 450 },
-  { Account: 'Adam', Metric: 'Impressions', Monthly_Goal: 24000 },
+  { Account: 'Adam', Metric: 'Impressions', Monthly_Goal: 40000 },
   { Account: 'Adam', Metric: 'Engagement_Rate', Monthly_Goal: 3.5 },
   { Account: 'Adam', Metric: 'Posts_Published', Monthly_Goal: 15 },
   { Account: 'Adam', Metric: 'Profile_Views', Monthly_Goal: 1100 },
   { Account: 'Chore', Metric: 'Followers_Growth', Monthly_Goal: 220 },
-  { Account: 'Chore', Metric: 'Impressions', Monthly_Goal: 11000 },
+  { Account: 'Chore', Metric: 'Impressions', Monthly_Goal: 10000 },
   { Account: 'Chore', Metric: 'Engagement_Rate', Monthly_Goal: 2.8 },
   { Account: 'Chore', Metric: 'Posts_Published', Monthly_Goal: 10 },
 ];
