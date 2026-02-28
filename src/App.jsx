@@ -4,7 +4,6 @@ import LoadingSkeleton from './components/LoadingSkeleton';
 import ErrorState from './components/ErrorState';
 import UnifiedView from './components/UnifiedView';
 import AccountTab from './components/AccountTab';
-import { USE_MOCK_DATA, SHEET_ID } from './config';
 
 const TABS = [
   { id: 'overview', label: 'Unified View' },
@@ -63,11 +62,7 @@ export default function App() {
               <span className="text-base font-bold text-slate-100 tracking-tight">
                 LinkedIn Analytics
               </span>
-              {(USE_MOCK_DATA || SHEET_ID === 'YOUR_SHEET_ID_HERE') && (
-                <span className="rounded-full bg-amber-500/15 px-2 py-0.5 text-xs font-semibold text-amber-400 ring-1 ring-amber-500/30">
-                  Demo Data
-                </span>
-              )}
+
             </div>
 
             {/* Right controls */}
@@ -151,9 +146,7 @@ export default function App() {
       <footer className="border-t border-slate-800 mt-8 py-4">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 text-center text-xs text-slate-600">
           LinkedIn Analytics Dashboard · Data sourced from Google Sheets ·{' '}
-          {USE_MOCK_DATA || SHEET_ID === 'YOUR_SHEET_ID_HERE'
-            ? 'Currently showing demo data — update SHEET_ID in src/config.js to connect your sheet'
-            : 'Live data'}
+          Live data
         </div>
       </footer>
     </div>

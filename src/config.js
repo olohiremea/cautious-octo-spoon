@@ -21,10 +21,6 @@
 
 export const SHEET_ID = '1nUlt9NRPm3ncL3XAL86c4uGbsFn9FA7bMBj_qSYcJMk';
 
-// Set to true to use built-in mock data instead of fetching from Google Sheets.
-// Useful for demos and development.
-export const USE_MOCK_DATA = false;
-
 // Base URL for the Google Visualization API (no API key required for public sheets)
 export const SHEET_BASE_URL = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:json&sheet=`;
 
