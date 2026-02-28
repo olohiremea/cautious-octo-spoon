@@ -53,8 +53,6 @@ export default function useSheetData() {
     setLoading(true);
     setError(null);
     try {
-      let sheets;
-
       const [adamWeekly, choreWeekly, adamPosts, chorePosts, goals] =
         await Promise.all([
           fetchSheet(SHEET_NAMES.ADAM_WEEKLY),
