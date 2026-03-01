@@ -1,9 +1,7 @@
 import { useState, useMemo, useCallback, useEffect } from 'react';
 import { currentMonthYM, findGoal, formatNumber } from '../utils/dataHelpers';
 
-const GEMINI_API_KEY = import.meta.env.VITE_GEMINI_API_KEY || 'AIzaSyBTEHrNcCP43RFz_rI4Ef_AZy6Ib1c4TB0';
-const GEMINI_URL =
-  `https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key=${GEMINI_API_KEY}`;
+const GEMINI_URL = '/api/gemini';
 
 // ── Stats computation ─────────────────────────────────────────────────────────
 
@@ -62,7 +60,7 @@ export default function AIInsights({ adamPosts, chorePosts, adamWeekly, choreWee
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
-  const hasApiKey = !!GEMINI_API_KEY;
+  const hasApiKey = true; // key is held server-side; client always has access
 
   // Use selected year/month if provided, otherwise fall back to current month
   const { year: defaultYear, month: defaultMonth } = currentMonthYM();
