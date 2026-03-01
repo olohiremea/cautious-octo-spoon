@@ -136,10 +136,7 @@ export default function AIInsights({ adamPosts, chorePosts, adamWeekly, choreWee
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] }),
       });
-      if (!res.ok) {
-        const body = await res.json().catch(() => ({}));
-        throw new Error(body.error ?? `Gemini API error ${res.status}`);
-      }
+      if (!res.ok) throw new Error(`Gemini API error ${res.status}`);
       const json = await res.json();
       const text = json.candidates?.[0]?.content?.parts?.[0]?.text;
       if (!text) throw new Error('Empty response from Gemini');

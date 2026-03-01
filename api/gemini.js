@@ -6,7 +6,7 @@ export default async function handler(req, res) {
   if (!key) {
     return res.status(500).json({ error: 'GEMINI_API_KEY is not configured on the server. Set it in Vercel → Project Settings → Environment Variables, then redeploy.' });
   }
-  const GEMINI_URL = `https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key=${key}`;
+  const GEMINI_URL = `https://generativelanguage.googleapis.com/v1/models/gemini-2.5-flash:generateContent?key=${key}`;
   try {
     const upstream = await fetch(GEMINI_URL, {
       method: 'POST',
