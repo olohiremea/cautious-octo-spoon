@@ -61,6 +61,8 @@ export default function AIInsights({ adamPosts, chorePosts, adamWeekly, choreWee
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
+  const hasApiKey = !!import.meta.env.VITE_GEMINI_API_KEY;
+
   // Use selected year/month if provided, otherwise fall back to current month
   const { year: defaultYear, month: defaultMonth } = currentMonthYM();
   const cy = year ?? defaultYear;
@@ -126,10 +128,7 @@ export default function AIInsights({ adamPosts, chorePosts, adamWeekly, choreWee
   }, [adamPosts, adamWeekly, choreWeekly, goals, cy, cm]);
 
   const fetchInsights = useCallback(async () => {
-    if (!import.meta.env.VITE_GEMINI_API_KEY) {
-      setError('VITE_GEMINI_API_KEY is not set in your .env file.');
-      return;
-    }
+    if (!hasApiKey) return;
     setLoading(true);
     setError(null);
     try {
@@ -150,8 +149,9 @@ export default function AIInsights({ adamPosts, chorePosts, adamWeekly, choreWee
     }
   }, [prompt]);
 
-  // Auto-fetch once data is available
+  // Auto-fetch once data is available (only when API key is configured)
   useEffect(() => {
+    if (!hasApiKey) return;
     if ((adamPosts?.length || choreWeekly?.length) && !insights && !loading) {
       fetchInsights();
     }
@@ -178,7 +178,7 @@ export default function AIInsights({ adamPosts, chorePosts, adamWeekly, choreWee
         </div>
         <button
           onClick={fetchInsights}
-          disabled={loading}
+          disabled={loading || !hasApiKey}
           className="flex items-center gap-1.5 rounded-lg bg-slate-700 px-3 py-1.5 text-xs font-medium text-slate-300 hover:bg-slate-600 hover:text-slate-100 disabled:opacity-50 transition-colors ring-1 ring-slate-600"
         >
           {loading ? (
@@ -231,7 +231,13 @@ export default function AIInsights({ adamPosts, chorePosts, adamWeekly, choreWee
           </ul>
         )}
 
-        {!loading && !error && !insights && (
+        {!hasApiKey && (
+          <p className="text-sm text-slate-500 text-center py-4">
+            Add <code className="text-slate-400">VITE_GEMINI_API_KEY</code> to your <code className="text-slate-400">.env</code> file to enable AI insights.
+          </p>
+        )}
+
+        {hasApiKey && !loading && !error && !insights && (
           <p className="text-sm text-slate-500 text-center py-4">
             Insights will appear once data is loaded.
           </p>
