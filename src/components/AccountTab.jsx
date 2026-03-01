@@ -48,10 +48,10 @@ export default function AccountTab({ account, weeklyData, postsData, goals, year
     const goalEngagement = findGoal(goals, account, 'Engagement_Rate');
     const goalPosts = isAdam ? findGoal(goals, account, 'Posts_Published') : null;
 
-    const growthOT = isOnTrack(growth, goalGrowth);
-    const impressionsOT = isOnTrack(impressions, goalImpressions);
-    const engagementOT = isOnTrack(engagement, goalEngagement);
-    const postsOT = isAdam ? isOnTrack(posts, goalPosts) : null;
+    const growthOT = isOnTrack(growth, goalGrowth, cy, cm);
+    const impressionsOT = isOnTrack(impressions, goalImpressions, cy, cm);
+    const engagementOT = isOnTrack(engagement, goalEngagement, cy, cm);
+    const postsOT = isAdam ? isOnTrack(posts, goalPosts, cy, cm) : null;
 
     const trackingList = isAdam
       ? [growthOT, impressionsOT, engagementOT, postsOT]

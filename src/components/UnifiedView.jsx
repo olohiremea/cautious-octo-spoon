@@ -56,15 +56,15 @@ export default function UnifiedView({ adamWeekly, choreWeekly, adamPosts, choreP
 
     // ── On-track flags ─────────────────────────────────────────────────────
     const adamTracking = [
-      isOnTrack(adamGrowth,      adamGoals.growth),
-      isOnTrack(adamImpressions, adamGoals.impressions),
-      isOnTrack(adamEngagement,  adamGoals.engagement),
-      isOnTrack(adamPostCount,   adamGoals.posts),
+      isOnTrack(adamGrowth,      adamGoals.growth,      cy, cm),
+      isOnTrack(adamImpressions, adamGoals.impressions, cy, cm),
+      isOnTrack(adamEngagement,  adamGoals.engagement,  cy, cm),
+      isOnTrack(adamPostCount,   adamGoals.posts,       cy, cm),
     ];
     const choreTracking = [
-      isOnTrack(choreGrowth,      choreGoals.growth),
-      isOnTrack(choreImpressions, choreGoals.impressions),
-      isOnTrack(choreEngagement,  choreGoals.engagement),
+      isOnTrack(choreGrowth,      choreGoals.growth,      cy, cm),
+      isOnTrack(choreImpressions, choreGoals.impressions, cy, cm),
+      isOnTrack(choreEngagement,  choreGoals.engagement,  cy, cm),
     ];
 
     return {
@@ -111,8 +111,8 @@ export default function UnifiedView({ adamWeekly, choreWeekly, adamPosts, choreP
           label="Follower Growth This Month"
           adamValue={`+${formatNumber(adamGrowth)}`}
           choreValue={`+${formatNumber(choreGrowth)}`}
-          adamOnTrack={isOnTrack(adamGrowth, adamGoals.growth)}
-          choreOnTrack={isOnTrack(choreGrowth, choreGoals.growth)}
+          adamOnTrack={isOnTrack(adamGrowth, adamGoals.growth, cy, cm)}
+          choreOnTrack={isOnTrack(choreGrowth, choreGoals.growth, cy, cm)}
           adamSub={adamGoals.growth ? `Goal: +${formatNumber(adamGoals.growth)}` : null}
           choreSub={choreGoals.growth ? `Goal: +${formatNumber(choreGoals.growth)}` : null}
         />
@@ -120,8 +120,8 @@ export default function UnifiedView({ adamWeekly, choreWeekly, adamPosts, choreP
           label="Total Impressions This Month"
           adamValue={formatNumber(adamImpressions)}
           choreValue={formatNumber(choreImpressions)}
-          adamOnTrack={isOnTrack(adamImpressions, adamGoals.impressions)}
-          choreOnTrack={isOnTrack(choreImpressions, choreGoals.impressions)}
+          adamOnTrack={isOnTrack(adamImpressions, adamGoals.impressions, cy, cm)}
+          choreOnTrack={isOnTrack(choreImpressions, choreGoals.impressions, cy, cm)}
           adamSub={adamGoals.impressions ? `Goal: ${formatNumber(adamGoals.impressions)}` : null}
           choreSub={choreGoals.impressions ? `Goal: ${formatNumber(choreGoals.impressions)}` : null}
         />
@@ -129,8 +129,8 @@ export default function UnifiedView({ adamWeekly, choreWeekly, adamPosts, choreP
           label="Avg. Engagement Rate"
           adamValue={`${adamEngagement}%`}
           choreValue={`${choreEngagement}%`}
-          adamOnTrack={isOnTrack(adamEngagement, adamGoals.engagement)}
-          choreOnTrack={isOnTrack(choreEngagement, choreGoals.engagement)}
+          adamOnTrack={isOnTrack(adamEngagement, adamGoals.engagement, cy, cm)}
+          choreOnTrack={isOnTrack(choreEngagement, choreGoals.engagement, cy, cm)}
           adamSub={adamGoals.engagement ? `Goal: ${adamGoals.engagement}%` : null}
           choreSub={choreGoals.engagement ? `Goal: ${choreGoals.engagement}%` : null}
         />
@@ -139,7 +139,7 @@ export default function UnifiedView({ adamWeekly, choreWeekly, adamPosts, choreP
         <MetricCard
           label="Adam — Posts Published"
           value={String(adamPostCount)}
-          onTrack={isOnTrack(adamPostCount, adamGoals.posts)}
+          onTrack={isOnTrack(adamPostCount, adamGoals.posts, cy, cm)}
           accent={ADAM_BLUE}
           goal={adamGoals.posts ? `${adamGoals.posts} posts` : null}
           subLabel="Adam only — Chore does not track posts in weekly data"

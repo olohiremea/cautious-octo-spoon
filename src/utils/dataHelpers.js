@@ -117,9 +117,16 @@ export function proRatedGoal(monthlyGoal) {
   return (monthlyGoal / daysInMonth) * now.getDate();
 }
 
-export function isOnTrack(currentValue, monthlyGoal) {
+export function isOnTrack(currentValue, monthlyGoal, year, month) {
   if (monthlyGoal == null) return null;
-  return currentValue >= proRatedGoal(monthlyGoal);
+  const now = new Date();
+  // Past complete months: compare final value against the full monthly goal.
+  // Current month (still in progress): pro-rate based on today's position.
+  const isPastMonth =
+    year < now.getFullYear() ||
+    (year === now.getFullYear() && month < now.getMonth());
+  const target = isPastMonth ? monthlyGoal : proRatedGoal(monthlyGoal);
+  return currentValue >= target;
 }
 
 /** Find a goal value from the goals array */
