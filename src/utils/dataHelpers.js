@@ -22,6 +22,12 @@ function parseLocalDate(str) {
     return new Date(Number(gviz[1]), Number(gviz[2]), Number(gviz[3]));
   }
 
+  // ISO year-month only: "2026-02"
+  if (/^\d{4}-\d{2}$/.test(s)) {
+    const [y, m] = s.split('-').map(Number);
+    return new Date(y, m - 1, 1);
+  }
+
   // ISO: "2026-02-21"
   if (/^\d{4}-\d{2}-\d{2}$/.test(s)) {
     const [y, m, d] = s.split('-').map(Number);
@@ -37,10 +43,11 @@ function parseLocalDate(str) {
   return new Date(s);
 }
 
-/** Filter weekly rows whose Week date falls in the given month/year */
+/** Filter rows whose date (Week or Month column) falls in the given month/year */
 export function filterByMonth(weeklyData, year, month) {
   return weeklyData.filter((row) => {
-    const d = parseLocalDate(row.Week);
+    const dateVal = row.Week ?? row.Month;
+    const d = parseLocalDate(dateVal);
     return d.getFullYear() === year && d.getMonth() === month;
   });
 }

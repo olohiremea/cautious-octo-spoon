@@ -90,8 +90,9 @@ export default function AIInsights({ adamPosts, chorePosts, adamMonthly, choreMo
 
     // Adam monthly totals for this month
     const adamRows = (adamMonthly ?? []).filter((r) => {
-      if (!r.Week) return false;
-      const [y, m] = String(r.Week).split('-').map(Number);
+      const dateVal = r.Week ?? r.Month;
+      if (!dateVal) return false;
+      const [y, m] = String(dateVal).split('-').map(Number);
       return y === cy && m - 1 === cm;
     });
     const adamImpressions = adamRows.reduce((s, r) => s + (r.Impressions ?? 0), 0);
@@ -101,8 +102,9 @@ export default function AIInsights({ adamPosts, chorePosts, adamMonthly, choreMo
     const adamPosts2 = adamRows.reduce((s, r) => s + (r.Posts_Published ?? 0), 0);
 
     const choreRows = (choreMonthly ?? []).filter((r) => {
-      if (!r.Week) return false;
-      const [y, m] = String(r.Week).split('-').map(Number);
+      const dateVal = r.Week ?? r.Month;
+      if (!dateVal) return false;
+      const [y, m] = String(dateVal).split('-').map(Number);
       return y === cy && m - 1 === cm;
     });
     const choreImpressions = choreRows.reduce((s, r) => s + (r.Impressions ?? 0), 0);
