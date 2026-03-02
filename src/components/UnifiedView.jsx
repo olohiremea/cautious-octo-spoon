@@ -19,7 +19,7 @@ import {
 const ADAM_BLUE   = '#3B82F6';
 const CHORE_PURPLE = '#8B5CF6';
 
-export default function UnifiedView({ adamWeekly, choreWeekly, adamPosts, chorePosts, goals, year, month }) {
+export default function UnifiedView({ adamWeekly, adamMonthly, choreWeekly, choreMonthly, adamPosts, chorePosts, goals, year, month }) {
   // Derive "last month" from selected year/month
   const ly = month === 0 ? year - 1 : year;
   const lm = month === 0 ? 11 : month - 1;
@@ -31,15 +31,15 @@ export default function UnifiedView({ adamWeekly, choreWeekly, adamPosts, choreP
     // ── Adam ───────────────────────────────────────────────────────────────
     const adamFollowers   = getCurrentFollowers(adamWeekly);
     const adamGrowth      = getFollowerGrowth(adamWeekly, cy, cm);
-    const adamImpressions = getTotalImpressions(adamWeekly, cy, cm);
-    const adamEngagement  = getAvgEngagementRate(adamWeekly, cy, cm);
-    const adamPostCount   = getTotalPosts(adamWeekly, cy, cm);
+    const adamImpressions = getTotalImpressions(adamMonthly, cy, cm);
+    const adamEngagement  = getAvgEngagementRate(adamMonthly, cy, cm);
+    const adamPostCount   = getTotalPosts(adamMonthly, cy, cm);
 
     // ── Chore ──────────────────────────────────────────────────────────────
     const choreFollowers   = getCurrentFollowers(choreWeekly);
     const choreGrowth      = getFollowerGrowth(choreWeekly, cy, cm);
-    const choreImpressions = getTotalImpressions(choreWeekly, cy, cm);
-    const choreEngagement  = getAvgEngagementRate(choreWeekly, cy, cm);
+    const choreImpressions = getTotalImpressions(choreMonthly, cy, cm);
+    const choreEngagement  = getAvgEngagementRate(choreMonthly, cy, cm);
 
     // ── Goals ──────────────────────────────────────────────────────────────
     const adamGoals = {
@@ -74,7 +74,7 @@ export default function UnifiedView({ adamWeekly, choreWeekly, adamPosts, choreP
       adamHealth:  calculateHealthScore(adamTracking),
       choreHealth: calculateHealthScore(choreTracking),
     };
-  }, [adamWeekly, choreWeekly, goals, cy, cm]);
+  }, [adamWeekly, adamMonthly, choreWeekly, choreMonthly, goals, cy, cm]);
 
   const {
     adamFollowers, adamGrowth, adamImpressions, adamEngagement, adamPostCount,
@@ -153,8 +153,8 @@ export default function UnifiedView({ adamWeekly, choreWeekly, adamPosts, choreP
       <AIInsights
         adamPosts={adamPosts}
         chorePosts={chorePosts}
-        adamWeekly={adamWeekly}
-        choreWeekly={choreWeekly}
+        adamMonthly={adamMonthly}
+        choreMonthly={choreMonthly}
         goals={goals}
         year={year}
         month={month}

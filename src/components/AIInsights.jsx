@@ -55,7 +55,7 @@ Format your response as concise bullet points (use • as the bullet character).
 
 // ── Component ─────────────────────────────────────────────────────────────────
 
-export default function AIInsights({ adamPosts, chorePosts, adamWeekly, choreWeekly, goals, year, month }) {
+export default function AIInsights({ adamPosts, chorePosts, adamMonthly, choreMonthly, goals, year, month }) {
   const [insights, setInsights] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -88,8 +88,8 @@ export default function AIInsights({ adamPosts, chorePosts, adamWeekly, choreWee
       return Math.round((current / goal) * 100);
     }
 
-    // Adam weekly totals for this month
-    const adamRows = (adamWeekly ?? []).filter((r) => {
+    // Adam monthly totals for this month
+    const adamRows = (adamMonthly ?? []).filter((r) => {
       if (!r.Week) return false;
       const [y, m] = String(r.Week).split('-').map(Number);
       return y === cy && m - 1 === cm;
@@ -100,7 +100,7 @@ export default function AIInsights({ adamPosts, chorePosts, adamWeekly, choreWee
       : 0;
     const adamPosts2 = adamRows.reduce((s, r) => s + (r.Posts_Published ?? 0), 0);
 
-    const choreRows = (choreWeekly ?? []).filter((r) => {
+    const choreRows = (choreMonthly ?? []).filter((r) => {
       if (!r.Week) return false;
       const [y, m] = String(r.Week).split('-').map(Number);
       return y === cy && m - 1 === cm;
@@ -124,7 +124,7 @@ export default function AIInsights({ adamPosts, chorePosts, adamWeekly, choreWee
     ];
 
     return buildPrompt({ formatStats, adamMetrics, choreMetrics });
-  }, [adamPosts, adamWeekly, choreWeekly, goals, cy, cm]);
+  }, [adamPosts, adamMonthly, choreMonthly, goals, cy, cm]);
 
   const fetchInsights = useCallback(async () => {
     if (!hasApiKey) return;
@@ -151,10 +151,10 @@ export default function AIInsights({ adamPosts, chorePosts, adamWeekly, choreWee
   // Auto-fetch once data is available (only when API key is configured)
   useEffect(() => {
     if (!hasApiKey) return;
-    if ((adamPosts?.length || choreWeekly?.length) && !insights && !loading) {
+    if ((adamPosts?.length || choreMonthly?.length) && !insights && !loading) {
       fetchInsights();
     }
-  }, [adamPosts, choreWeekly]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [adamPosts, choreMonthly]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Parse bullet points for nicer rendering
   const bullets = insights

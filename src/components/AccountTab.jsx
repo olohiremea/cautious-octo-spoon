@@ -18,7 +18,7 @@ import {
   formatChange,
 } from '../utils/dataHelpers';
 
-export default function AccountTab({ account, weeklyData, postsData, goals, year, month }) {
+export default function AccountTab({ account, weeklyData, monthlyData, postsData, goals, year, month }) {
   const isAdam = account === 'Adam';
   const color = isAdam ? '#3B82F6' : '#8B5CF6';
 
@@ -32,16 +32,16 @@ export default function AccountTab({ account, weeklyData, postsData, goals, year
   const metrics = useMemo(() => {
     const followers = getCurrentFollowers(weeklyData);
     const growth = getFollowerGrowth(weeklyData, cy, cm);
-    const impressions = getTotalImpressions(weeklyData, cy, cm);
-    const engagement = getAvgEngagementRate(weeklyData, cy, cm);
+    const impressions = getTotalImpressions(monthlyData, cy, cm);
+    const engagement = getAvgEngagementRate(monthlyData, cy, cm);
 
     const growthLast = getFollowerGrowth(weeklyData, ly, lm);
-    const impressionsLast = getTotalImpressions(weeklyData, ly, lm);
-    const engagementLast = getAvgEngagementRate(weeklyData, ly, lm);
+    const impressionsLast = getTotalImpressions(monthlyData, ly, lm);
+    const engagementLast = getAvgEngagementRate(monthlyData, ly, lm);
 
     // Posts Published — Adam only
-    const posts = isAdam ? getTotalPosts(weeklyData, cy, cm) : null;
-    const postsLast = isAdam ? getTotalPosts(weeklyData, ly, lm) : null;
+    const posts = isAdam ? getTotalPosts(monthlyData, cy, cm) : null;
+    const postsLast = isAdam ? getTotalPosts(monthlyData, ly, lm) : null;
 
     const goalGrowth = findGoal(goals, account, 'Followers_Growth');
     const goalImpressions = findGoal(goals, account, 'Impressions');
@@ -69,7 +69,7 @@ export default function AccountTab({ account, weeklyData, postsData, goals, year
       growthOT, impressionsOT, engagementOT, postsOT,
       healthScore,
     };
-  }, [weeklyData, goals, account, cy, cm, ly, lm, isAdam]);
+  }, [weeklyData, monthlyData, goals, account, cy, cm, ly, lm, isAdam]);
 
   const m = metrics;
   const monthName = new Date(year, month, 1).toLocaleString('default', { month: 'long', year: 'numeric' });
@@ -140,9 +140,9 @@ export default function AccountTab({ account, weeklyData, postsData, goals, year
       {/* Charts */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         <SingleFollowerChart weeklyData={weeklyData} color={color} label="Followers" />
-        <ImpressionsChart weeklyData={weeklyData} color={color} />
+        <ImpressionsChart weeklyData={monthlyData} color={color} />
       </div>
-      <EngagementChart weeklyData={weeklyData} color={color} goalRate={m.goalEngagement} />
+      <EngagementChart weeklyData={monthlyData} color={color} goalRate={m.goalEngagement} />
 
       {/* Posts table */}
       <PostsTable posts={postsData} account={account} accentColor={color} />

@@ -160,7 +160,9 @@ export default function App() {
             {activeTab === 'overview' && (
               <UnifiedView
                 adamWeekly={data.adamWeekly}
+                adamMonthly={data.adamMonthly}
                 choreWeekly={data.choreWeekly}
+                choreMonthly={data.choreMonthly}
                 adamPosts={data.adamPosts}
                 chorePosts={data.chorePosts}
                 goals={data.goals}
@@ -172,6 +174,7 @@ export default function App() {
               <AccountTab
                 account="Adam"
                 weeklyData={data.adamWeekly}
+                monthlyData={data.adamMonthly}
                 postsData={data.adamPosts}
                 goals={data.goals}
                 year={selectedYM.year}
@@ -182,6 +185,7 @@ export default function App() {
               <AccountTab
                 account="Chore"
                 weeklyData={data.choreWeekly}
+                monthlyData={data.choreMonthly}
                 postsData={data.chorePosts}
                 goals={data.goals}
                 year={selectedYM.year}

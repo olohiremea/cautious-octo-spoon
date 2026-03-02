@@ -53,15 +53,17 @@ export default function useSheetData() {
     setLoading(true);
     setError(null);
     try {
-      const [adamWeekly, choreWeekly, adamPosts, chorePosts, goals] =
+      const [adamWeekly, adamMonthly, choreWeekly, choreMonthly, adamPosts, chorePosts, goals] =
         await Promise.all([
           fetchSheet(SHEET_NAMES.ADAM_WEEKLY),
+          fetchSheet(SHEET_NAMES.ADAM_MONTHLY),
           fetchSheet(SHEET_NAMES.CHORE_WEEKLY),
+          fetchSheet(SHEET_NAMES.CHORE_MONTHLY),
           fetchSheet(SHEET_NAMES.ADAM_POSTS),
           fetchSheet(SHEET_NAMES.CHORE_POSTS),
           fetchSheet(SHEET_NAMES.GOALS),
         ]);
-      const sheets = { adamWeekly, choreWeekly, adamPosts, chorePosts, goals };
+      const sheets = { adamWeekly, adamMonthly, choreWeekly, choreMonthly, adamPosts, chorePosts, goals };
 
       setData(sheets);
       setLastUpdated(new Date());
