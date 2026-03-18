@@ -16,7 +16,12 @@ export default function useGA4Data(year, month) {
     try {
       // month + 1 converts from 0-indexed JS month to 1-indexed API param
       const res = await fetch(`/api/ga4?year=${year}&month=${month + 1}`);
-      const json = await res.json();
+      let json;
+      try {
+        json = await res.json();
+      } catch {
+        throw new Error(`Server returned non-JSON response (status ${res.status}). Check that GA4_PROPERTY_ID and GA4_SERVICE_ACCOUNT_JSON are set in your environment variables.`);
+      }
       if (!res.ok) throw new Error(json.error || 'Failed to fetch GA4 data');
       setData(json);
     } catch (e) {
