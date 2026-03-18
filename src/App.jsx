@@ -4,12 +4,14 @@ import LoadingSkeleton from './components/LoadingSkeleton';
 import ErrorState from './components/ErrorState';
 import UnifiedView from './components/UnifiedView';
 import AccountTab from './components/AccountTab';
+import WebTrafficTab from './components/WebTrafficTab';
 import { currentMonthYM } from './utils/dataHelpers';
 
 const TABS = [
   { id: 'overview', label: 'Unified View' },
   { id: 'adam',     label: "Adam's LinkedIn" },
   { id: 'chore',    label: "Chore's LinkedIn" },
+  { id: 'website',  label: 'Website Traffic' },
 ];
 
 // Generate the last N months as { year, month } objects, newest first
@@ -155,7 +157,12 @@ export default function App() {
           <ErrorState message={error} onRetry={load} />
         )}
 
-        {!loading && !error && data && (
+        {/* Website Traffic tab is independent of sheet data */}
+        {!loading && activeTab === 'website' && (
+          <WebTrafficTab year={selectedYM.year} month={selectedYM.month} />
+        )}
+
+        {!loading && !error && data && activeTab !== 'website' && (
           <>
             {activeTab === 'overview' && (
               <UnifiedView
