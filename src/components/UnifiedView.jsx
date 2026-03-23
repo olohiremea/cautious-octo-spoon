@@ -53,20 +53,39 @@ function toWeekly(combinedByDate) {
   return Object.values(weeks);
 }
 
-/** Merge two arrays of weekly LinkedIn rows, keyed by their formatted week label */
+/** Parse a raw Week value (GViz "Date(Y,M,D)" or ISO "YYYY-MM-DD") into a Date for sorting */
+function parseRawDate(raw) {
+  const s = String(raw).trim();
+  const gviz = s.match(/^Date\((\d+),(\d+),(\d+)\)$/);
+  if (gviz) return new Date(+gviz[1], +gviz[2], +gviz[3]); // month already 0-indexed
+  if (/^\d{4}-\d{2}-\d{2}$/.test(s)) {
+    const [y, m, d] = s.split('-').map(Number);
+    return new Date(y, m - 1, d);
+  }
+  return new Date(s);
+}
+
+/** Merge two arrays of weekly LinkedIn rows, sorted chronologically by raw Week date */
 function mergeWeeklyRows(adamRows, choreRows) {
-  const map = {};
-  for (const r of adamRows) {
-    const k = formatWeekLabel(r.Week);
-    map[k] = { week: k, adam: r.Impressions ?? 0, adamEng: r.Engagement_Rate ?? 0 };
-  }
-  for (const r of choreRows) {
-    const k = formatWeekLabel(r.Week);
-    if (!map[k]) map[k] = { week: k, adam: 0, adamEng: 0 };
-    map[k].chore    = r.Impressions ?? 0;
-    map[k].choreEng = r.Engagement_Rate ?? 0;
-  }
-  return Object.values(map).sort((a, b) => (a.week < b.week ? -1 : 1));
+  const adamByRaw  = Object.fromEntries(adamRows.map((r)  => [String(r.Week), r]));
+  const choreByRaw = Object.fromEntries(choreRows.map((r) => [String(r.Week), r]));
+
+  const allRaws = [...new Set([
+    ...adamRows.map((r)  => String(r.Week)),
+    ...choreRows.map((r) => String(r.Week)),
+  ])].sort((a, b) => parseRawDate(a) - parseRawDate(b));
+
+  return allRaws.map((raw) => {
+    const a = adamByRaw[raw];
+    const c = choreByRaw[raw];
+    return {
+      week:    formatWeekLabel(raw),
+      adam:    a?.Impressions     ?? 0,
+      adamEng: a?.Engagement_Rate ?? 0,
+      chore:   c?.Impressions     ?? 0,
+      choreEng: c?.Engagement_Rate ?? 0,
+    };
+  });
 }
 
 // ── Shared tooltip ────────────────────────────────────────────────────────────
