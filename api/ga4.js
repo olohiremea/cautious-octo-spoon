@@ -8,6 +8,26 @@ try {
   // Handled inside the handler
 }
 
+const CHANNELS = ['Organic Social', 'Direct', 'Organic Search'];
+
+const channelFilter = {
+  orGroup: {
+    expressions: CHANNELS.map((value) => ({
+      filter: {
+        fieldName: 'sessionDefaultChannelGrouping',
+        stringFilter: { value, matchType: 'EXACT' },
+      },
+    })),
+  },
+};
+
+const organicSocialFilter = {
+  filter: {
+    fieldName: 'sessionDefaultChannelGrouping',
+    stringFilter: { value: 'Organic Social', matchType: 'EXACT' },
+  },
+};
+
 export default async function handler(req, res) {
   if (req.method !== 'GET') {
     return res.status(405).json({ error: 'Method not allowed' });
@@ -50,28 +70,26 @@ export default async function handler(req, res) {
     const analyticsdata = google.analyticsdata({ version: 'v1beta', auth });
     const property = `properties/${GA4_PROPERTY_ID}`;
 
-    const organicSocialFilter = {
-      filter: {
-        fieldName: 'sessionDefaultChannelGrouping',
-        stringFilter: { value: 'Organic Social', matchType: 'EXACT' },
-      },
-    };
-
-    const [byDateRes, bySourceRes, prevTotalsRes] = await Promise.all([
+    const [byDateRes, bySourceRes, prevByChannelRes] = await Promise.all([
+      // Current month: sessions by date × channel (all 3 channels)
       analyticsdata.properties.runReport({
         property,
         requestBody: {
           dateRanges: [{ startDate, endDate }],
-          dimensions: [{ name: 'date' }],
+          dimensions: [
+            { name: 'date' },
+            { name: 'sessionDefaultChannelGrouping' },
+          ],
           metrics: [
             { name: 'sessions' },
             { name: 'totalUsers' },
             { name: 'screenPageViews' },
           ],
-          dimensionFilter: organicSocialFilter,
+          dimensionFilter: channelFilter,
           orderBys: [{ dimension: { dimensionName: 'date' }, desc: false }],
         },
       }),
+      // Current month: top sources within Organic Social
       analyticsdata.properties.runReport({
         property,
         requestBody: {
@@ -83,55 +101,105 @@ export default async function handler(req, res) {
           limit: 10,
         },
       }),
+      // Previous month: totals by channel (for MoM comparison)
       analyticsdata.properties.runReport({
         property,
         requestBody: {
           dateRanges: [{ startDate: prevStart, endDate: prevEnd }],
+          dimensions: [{ name: 'sessionDefaultChannelGrouping' }],
           metrics: [
             { name: 'sessions' },
             { name: 'totalUsers' },
             { name: 'screenPageViews' },
           ],
-          dimensionFilter: organicSocialFilter,
+          dimensionFilter: channelFilter,
         },
       }),
     ]);
 
-    const byDate = (byDateRes.data.rows ?? []).map((row) => {
-      const raw = row.dimensionValues[0].value; // "20260201"
-      return {
-        date:      `${raw.slice(0, 4)}-${raw.slice(4, 6)}-${raw.slice(6, 8)}`,
+    // ── Parse by-date rows, grouped by channel ────────────────────────────────
+    const channelsByDate = {};
+    for (const row of byDateRes.data.rows ?? []) {
+      const raw     = row.dimensionValues[0].value; // "20260201"
+      const channel = row.dimensionValues[1].value;
+      const date    = `${raw.slice(0, 4)}-${raw.slice(4, 6)}-${raw.slice(6, 8)}`;
+      if (!channelsByDate[channel]) channelsByDate[channel] = [];
+      channelsByDate[channel].push({
+        date,
+        sessions:  parseInt(row.metricValues[0].value, 10),
+        users:     parseInt(row.metricValues[1].value, 10),
+        pageViews: parseInt(row.metricValues[2].value, 10),
+      });
+    }
+
+    // Aggregate channel totals for the current month
+    const sumRows = (rows = []) =>
+      rows.reduce(
+        (acc, r) => ({
+          sessions:  acc.sessions  + r.sessions,
+          users:     acc.users     + r.users,
+          pageViews: acc.pageViews + r.pageViews,
+        }),
+        { sessions: 0, users: 0, pageViews: 0 },
+      );
+
+    // ── Parse previous-month rows by channel ──────────────────────────────────
+    const prevByChannel = {};
+    for (const row of prevByChannelRes.data.rows ?? []) {
+      const channel = row.dimensionValues[0].value;
+      prevByChannel[channel] = {
         sessions:  parseInt(row.metricValues[0].value, 10),
         users:     parseInt(row.metricValues[1].value, 10),
         pageViews: parseInt(row.metricValues[2].value, 10),
       };
+    }
+
+    // ── Build per-channel objects ─────────────────────────────────────────────
+    const makeChannel = (name) => ({
+      totals:     sumRows(channelsByDate[name]),
+      prevTotals: prevByChannel[name] ?? null,
+      byDate:     channelsByDate[name] ?? [],
     });
 
+    const organicSocial = makeChannel('Organic Social');
+    const direct        = makeChannel('Direct');
+    const organicSearch = makeChannel('Organic Search');
+
+    // ── Combined daily series (all 3 channels, for the multi-line chart) ──────
+    const allDates = [
+      ...new Set([
+        ...organicSocial.byDate.map((r) => r.date),
+        ...direct.byDate.map((r) => r.date),
+        ...organicSearch.byDate.map((r) => r.date),
+      ]),
+    ].sort();
+
+    const lookup = (rows, date) => rows.find((r) => r.date === date)?.sessions ?? 0;
+    const combinedByDate = allDates.map((date) => ({
+      date,
+      organicSocial: lookup(organicSocial.byDate, date),
+      direct:        lookup(direct.byDate, date),
+      organicSearch: lookup(organicSearch.byDate, date),
+    }));
+
+    // ── Top organic-social sources ────────────────────────────────────────────
     const bySource = (bySourceRes.data.rows ?? []).map((row) => ({
       source:   row.dimensionValues[0].value,
       sessions: parseInt(row.metricValues[0].value, 10),
       users:    parseInt(row.metricValues[1].value, 10),
     }));
 
-    const totals = byDate.reduce(
-      (acc, r) => ({
-        sessions:  acc.sessions  + r.sessions,
-        users:     acc.users     + r.users,
-        pageViews: acc.pageViews + r.pageViews,
-      }),
-      { sessions: 0, users: 0, pageViews: 0 },
-    );
-
-    const prevRow = prevTotalsRes.data.totals?.[0]?.metricValues;
-    const prevTotals = prevRow
-      ? {
-          sessions:  parseInt(prevRow[0].value, 10),
-          users:     parseInt(prevRow[1].value, 10),
-          pageViews: parseInt(prevRow[2].value, 10),
-        }
-      : null;
-
-    res.json({ totals, prevTotals, byDate, bySource });
+    res.json({
+      organicSocial,
+      direct,
+      organicSearch,
+      combinedByDate,
+      bySource,
+      // Backward-compat flat fields (organic social) used by UnifiedView
+      totals:     organicSocial.totals,
+      prevTotals: organicSocial.prevTotals,
+      byDate:     organicSocial.byDate,
+    });
   } catch (err) {
     console.error('GA4 error:', err.message);
     res.status(502).json({ error: err.message });
