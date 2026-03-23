@@ -1,5 +1,8 @@
 import { useMemo } from 'react';
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import {
+  LineChart, Line, BarChart, Bar,
+  XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer,
+} from 'recharts';
 import ComparisonCard from './ComparisonCard';
 import MetricCard from './MetricCard';
 import HealthScoreRing from './HealthScoreRing';
@@ -18,49 +21,189 @@ import {
   calculateHealthScore,
   formatNumber,
   formatChange,
+  filterByMonth,
+  formatWeekLabel,
 } from '../utils/dataHelpers';
 
 const ADAM_BLUE    = '#3B82F6';
 const CHORE_PURPLE = '#8B5CF6';
-const GA4_GREEN    = '#34d399';
+const GA4_SOCIAL   = '#34d399';
+const GA4_DIRECT   = '#60a5fa';
+const GA4_SEARCH   = '#fbbf24';
 
-const MONTH_ABBR = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+// ── Helpers ───────────────────────────────────────────────────────────────────
 
-function GA4SessionsLine({ byDate }) {
-  if (!byDate?.length) return <p className="text-slate-500 text-sm text-center py-6">No data for this period.</p>;
-  const data = byDate.map((r) => {
-    const [, m, d] = r.date.split('-').map(Number);
-    return { date: `${MONTH_ABBR[m - 1]} ${d}`, sessions: r.sessions };
-  });
+function pct(current, prev) {
+  if (!prev) return null;
+  const p = (((current - prev) / Math.abs(prev)) * 100).toFixed(1);
+  return { p, positive: parseFloat(p) >= 0 };
+}
+
+/** Collapse daily GA4 rows into Wk 1-4 weekly buckets */
+function toWeekly(combinedByDate) {
+  const weeks = {};
+  for (const row of combinedByDate ?? []) {
+    const day   = parseInt(row.date.split('-')[2], 10);
+    const label = `Wk ${Math.floor((day - 1) / 7) + 1}`;
+    if (!weeks[label]) weeks[label] = { week: label, organicSocial: 0, direct: 0, organicSearch: 0 };
+    weeks[label].organicSocial += row.organicSocial;
+    weeks[label].direct        += row.direct;
+    weeks[label].organicSearch += row.organicSearch;
+  }
+  return Object.values(weeks);
+}
+
+/** Merge two arrays of weekly LinkedIn rows, keyed by their formatted week label */
+function mergeWeeklyRows(adamRows, choreRows) {
+  const map = {};
+  for (const r of adamRows) {
+    const k = formatWeekLabel(r.Week);
+    map[k] = { week: k, adam: r.Impressions ?? 0, adamEng: r.Engagement_Rate ?? 0 };
+  }
+  for (const r of choreRows) {
+    const k = formatWeekLabel(r.Week);
+    if (!map[k]) map[k] = { week: k, adam: 0, adamEng: 0 };
+    map[k].chore    = r.Impressions ?? 0;
+    map[k].choreEng = r.Engagement_Rate ?? 0;
+  }
+  return Object.values(map).sort((a, b) => (a.week < b.week ? -1 : 1));
+}
+
+// ── Shared tooltip ────────────────────────────────────────────────────────────
+
+function DarkTooltip({ active, payload, label, formatter }) {
+  if (!active || !payload?.length) return null;
+  return (
+    <div className="rounded-lg bg-slate-900 ring-1 ring-slate-600 p-3 shadow-xl text-xs">
+      <p className="mb-1.5 font-semibold text-slate-300">{label}</p>
+      {payload.map((e) => (
+        <p key={e.name} style={{ color: e.color }} className="leading-5">
+          {e.name}: <span className="font-bold">{formatter ? formatter(e.value) : formatNumber(e.value)}</span>
+        </p>
+      ))}
+    </div>
+  );
+}
+
+// ── LinkedIn combined charts ──────────────────────────────────────────────────
+
+function CombinedImpressionsChart({ adamWeekly, choreWeekly, year, month }) {
+  const data = useMemo(() => {
+    const aRows = filterByMonth(adamWeekly,  year, month);
+    const cRows = filterByMonth(choreWeekly, year, month);
+    return mergeWeeklyRows(aRows, cRows);
+  }, [adamWeekly, choreWeekly, year, month]);
+
+  if (!data.length) return <p className="text-slate-500 text-sm text-center py-6">No impression data for this period.</p>;
+
+  return (
+    <div className="rounded-xl bg-slate-800 ring-1 ring-slate-700 p-5">
+      <h4 className="text-sm font-semibold text-slate-300 mb-4">Weekly Impressions — Adam &amp; Chore</h4>
+      <ResponsiveContainer width="100%" height={220}>
+        <BarChart data={data} margin={{ top: 4, right: 16, left: 0, bottom: 0 }}>
+          <CartesianGrid strokeDasharray="3 3" stroke="#334155" vertical={false} />
+          <XAxis dataKey="week" tick={{ fontSize: 11, fill: '#94a3b8' }} tickLine={false} axisLine={false} />
+          <YAxis tick={{ fontSize: 11, fill: '#94a3b8' }} width={44} tickFormatter={formatNumber} tickLine={false} axisLine={false} />
+          <Tooltip content={<DarkTooltip />} cursor={{ fill: 'rgba(148,163,184,0.05)' }} />
+          <Legend wrapperStyle={{ fontSize: 12, color: '#94a3b8', paddingTop: 8 }} />
+          <Bar dataKey="adam"  name="Adam"  fill={ADAM_BLUE}    radius={[4, 4, 0, 0]} />
+          <Bar dataKey="chore" name="Chore" fill={CHORE_PURPLE} radius={[4, 4, 0, 0]} />
+        </BarChart>
+      </ResponsiveContainer>
+    </div>
+  );
+}
+
+function CombinedEngagementChart({ adamWeekly, choreWeekly, year, month }) {
+  const data = useMemo(() => {
+    const aRows = filterByMonth(adamWeekly,  year, month);
+    const cRows = filterByMonth(choreWeekly, year, month);
+    return mergeWeeklyRows(aRows, cRows);
+  }, [adamWeekly, choreWeekly, year, month]);
+
+  if (!data.length) return <p className="text-slate-500 text-sm text-center py-6">No engagement data for this period.</p>;
+
+  return (
+    <div className="rounded-xl bg-slate-800 ring-1 ring-slate-700 p-5">
+      <h4 className="text-sm font-semibold text-slate-300 mb-4">Weekly Engagement Rate — Adam &amp; Chore</h4>
+      <ResponsiveContainer width="100%" height={220}>
+        <LineChart data={data} margin={{ top: 4, right: 16, left: 0, bottom: 0 }}>
+          <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
+          <XAxis dataKey="week" tick={{ fontSize: 11, fill: '#94a3b8' }} tickLine={false} axisLine={false} />
+          <YAxis
+            tick={{ fontSize: 11, fill: '#94a3b8' }}
+            tickLine={false}
+            axisLine={false}
+            tickFormatter={(v) => `${v}%`}
+            width={40}
+          />
+          <Tooltip content={<DarkTooltip formatter={(v) => `${v}%`} />} />
+          <Legend wrapperStyle={{ fontSize: 12, color: '#94a3b8', paddingTop: 8 }} />
+          <Line type="monotone" dataKey="adamEng"  name="Adam"  stroke={ADAM_BLUE}    strokeWidth={2} dot={{ r: 4, fill: ADAM_BLUE }}    activeDot={{ r: 5 }} />
+          <Line type="monotone" dataKey="choreEng" name="Chore" stroke={CHORE_PURPLE} strokeWidth={2} dot={{ r: 4, fill: CHORE_PURPLE }} activeDot={{ r: 5 }} />
+        </LineChart>
+      </ResponsiveContainer>
+    </div>
+  );
+}
+
+// ── GA4 weekly multi-channel chart ────────────────────────────────────────────
+
+function GA4WeeklyChart({ combinedByDate }) {
+  if (!combinedByDate?.length) return <p className="text-slate-500 text-sm text-center py-6">No data for this period.</p>;
+  const data = toWeekly(combinedByDate);
   return (
     <ResponsiveContainer width="100%" height={200}>
       <LineChart data={data} margin={{ top: 4, right: 16, left: 0, bottom: 0 }}>
         <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
-        <XAxis dataKey="date" tick={{ fontSize: 11, fill: '#94a3b8' }} />
+        <XAxis dataKey="week" tick={{ fontSize: 11, fill: '#94a3b8' }} />
         <YAxis tick={{ fontSize: 11, fill: '#94a3b8' }} width={44} tickFormatter={formatNumber} />
         <Tooltip
           contentStyle={{ backgroundColor: '#1e293b', border: '1px solid #334155', borderRadius: 8 }}
           labelStyle={{ color: '#e2e8f0', fontWeight: 600 }}
-          itemStyle={{ color: GA4_GREEN }}
         />
-        <Line type="monotone" dataKey="sessions" stroke={GA4_GREEN} strokeWidth={2} dot={false} name="Sessions" />
+        <Legend wrapperStyle={{ fontSize: 12, color: '#94a3b8', paddingTop: 8 }} />
+        <Line type="monotone" dataKey="organicSocial" name="Organic Social" stroke={GA4_SOCIAL} strokeWidth={2} dot={{ r: 3, fill: GA4_SOCIAL }} activeDot={{ r: 5 }} />
+        <Line type="monotone" dataKey="direct"        name="Direct"         stroke={GA4_DIRECT} strokeWidth={2} dot={{ r: 3, fill: GA4_DIRECT }} activeDot={{ r: 5 }} />
+        <Line type="monotone" dataKey="organicSearch" name="Organic Search" stroke={GA4_SEARCH} strokeWidth={2} dot={{ r: 3, fill: GA4_SEARCH }} activeDot={{ r: 5 }} />
       </LineChart>
     </ResponsiveContainer>
   );
 }
 
+// ── GA4 channel metric row ────────────────────────────────────────────────────
+
+function GA4ChannelCard({ label, color, ch }) {
+  if (!ch) return null;
+  const change = pct(ch.totals.sessions, ch.prevTotals?.sessions);
+  return (
+    <div
+      className="rounded-xl bg-slate-800 ring-1 ring-slate-700 p-4 flex flex-col gap-1"
+      style={{ borderLeft: `3px solid ${color}` }}
+    >
+      <span className="text-xs font-medium uppercase tracking-wider text-slate-500">{label}</span>
+      <span className="text-2xl font-bold text-slate-100">{formatNumber(ch.totals.sessions)}</span>
+      <span className="text-xs text-slate-500">sessions</span>
+      {change && (
+        <span className={`text-xs font-medium ${change.positive ? 'text-emerald-400' : 'text-red-400'}`}>
+          {change.positive ? '+' : ''}{change.p}% vs prev month
+        </span>
+      )}
+    </div>
+  );
+}
+
+// ── Main component ────────────────────────────────────────────────────────────
+
 export default function UnifiedView({ adamWeekly, adamMonthly, choreWeekly, choreMonthly, adamPosts, chorePosts, goals, year, month }) {
-  // Derive "last month" from selected year/month
   const ly = month === 0 ? year - 1 : year;
   const lm = month === 0 ? 11 : month - 1;
-
   const cy = year;
   const cm = month;
 
   const { data: ga4Data, loading: ga4Loading, error: ga4Error } = useGA4Data(year, month);
 
   const metrics = useMemo(() => {
-    // ── Adam ───────────────────────────────────────────────────────────────
     const adamFollowers   = getCurrentFollowers(adamWeekly);
     const adamGrowth      = getFollowerGrowth(adamWeekly, cy, cm);
     const adamImpressions = getTotalImpressions(adamMonthly, cy, cm);
@@ -68,13 +211,11 @@ export default function UnifiedView({ adamWeekly, adamMonthly, choreWeekly, chor
     const adamPostCount   = getTotalPosts(adamMonthly, cy, cm);
     const adamICP         = getTotalICPConnections(adamMonthly, cy, cm);
 
-    // ── Chore ──────────────────────────────────────────────────────────────
     const choreFollowers   = getCurrentFollowers(choreWeekly);
     const choreGrowth      = getFollowerGrowth(choreWeekly, cy, cm);
     const choreImpressions = getTotalImpressions(choreMonthly, cy, cm);
     const choreEngagement  = getAvgEngagementRate(choreMonthly, cy, cm);
 
-    // ── Goals ──────────────────────────────────────────────────────────────
     const adamGoals = {
       growth:      findGoal(goals, 'Adam', 'Followers_Growth'),
       impressions: findGoal(goals, 'Adam', 'Impressions'),
@@ -88,7 +229,6 @@ export default function UnifiedView({ adamWeekly, adamMonthly, choreWeekly, chor
       engagement:  findGoal(goals, 'Chore', 'Engagement_Rate'),
     };
 
-    // ── On-track flags ─────────────────────────────────────────────────────
     const adamTracking = [
       isOnTrack(adamGrowth,      adamGoals.growth,      cy, cm),
       isOnTrack(adamImpressions, adamGoals.impressions, cy, cm),
@@ -121,7 +261,7 @@ export default function UnifiedView({ adamWeekly, adamMonthly, choreWeekly, chor
 
   return (
     <div className="space-y-6">
-      {/* Health score + month header */}
+      {/* Header + health scores */}
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
           <h2 className="text-lg font-semibold text-slate-100">Overview — {monthName}</h2>
@@ -169,8 +309,6 @@ export default function UnifiedView({ adamWeekly, adamMonthly, choreWeekly, chor
           adamSub={adamGoals.engagement ? `Goal: ${adamGoals.engagement}%` : null}
           choreSub={choreGoals.engagement ? `Goal: ${choreGoals.engagement}%` : null}
         />
-
-        {/* Adam-only: Posts Published */}
         <MetricCard
           label="Adam — Posts Published"
           value={String(adamPostCount)}
@@ -179,8 +317,6 @@ export default function UnifiedView({ adamWeekly, adamMonthly, choreWeekly, chor
           goal={adamGoals.posts ? `${adamGoals.posts} posts` : null}
           subLabel="Adam only — Chore does not track posts in weekly data"
         />
-
-        {/* Adam-only: ICP Connections */}
         <MetricCard
           label="Adam — ICP Connections"
           value={formatNumber(adamICP)}
@@ -191,11 +327,33 @@ export default function UnifiedView({ adamWeekly, adamMonthly, choreWeekly, chor
         />
       </div>
 
-      {/* Website Traffic — Organic Social (GA4) */}
+      {/* LinkedIn weekly charts */}
+      <div className="space-y-3">
+        <div>
+          <h3 className="text-sm font-semibold text-slate-300">LinkedIn — Weekly Trends</h3>
+          <p className="text-xs text-slate-500 mt-0.5">Impressions and engagement rate by week for both accounts</p>
+        </div>
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+          <CombinedImpressionsChart
+            adamWeekly={adamWeekly}
+            choreWeekly={choreWeekly}
+            year={year}
+            month={month}
+          />
+          <CombinedEngagementChart
+            adamWeekly={adamWeekly}
+            choreWeekly={choreWeekly}
+            year={year}
+            month={month}
+          />
+        </div>
+      </div>
+
+      {/* Website Traffic — all channels */}
       <div className="space-y-4">
         <div>
-          <h3 className="text-sm font-semibold text-slate-300">Website Traffic — Organic Social</h3>
-          <p className="text-xs text-slate-500 mt-0.5">GA4 · Sessions driven by organic social channels</p>
+          <h3 className="text-sm font-semibold text-slate-300">Website Traffic</h3>
+          <p className="text-xs text-slate-500 mt-0.5">GA4 · Organic Social, Direct &amp; Organic Search</p>
         </div>
 
         {ga4Loading && (
@@ -212,32 +370,17 @@ export default function UnifiedView({ adamWeekly, adamMonthly, choreWeekly, chor
 
         {!ga4Loading && ga4Data && (
           <>
+            {/* Per-channel sessions summary */}
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-              <MetricCard
-                label="Sessions"
-                value={formatNumber(ga4Data.totals.sessions)}
-                change={ga4Data.prevTotals ? formatChange(ga4Data.totals.sessions, ga4Data.prevTotals.sessions) : undefined}
-                accent={GA4_GREEN}
-                subLabel="Organic social — this month"
-              />
-              <MetricCard
-                label="Users"
-                value={formatNumber(ga4Data.totals.users)}
-                change={ga4Data.prevTotals ? formatChange(ga4Data.totals.users, ga4Data.prevTotals.users) : undefined}
-                accent={GA4_GREEN}
-                subLabel="Organic social — this month"
-              />
-              <MetricCard
-                label="Page Views"
-                value={formatNumber(ga4Data.totals.pageViews)}
-                change={ga4Data.prevTotals ? formatChange(ga4Data.totals.pageViews, ga4Data.prevTotals.pageViews) : undefined}
-                accent={GA4_GREEN}
-                subLabel="Organic social — this month"
-              />
+              <GA4ChannelCard label="Organic Social"  color={GA4_SOCIAL} ch={ga4Data.organicSocial} />
+              <GA4ChannelCard label="Direct"          color={GA4_DIRECT} ch={ga4Data.direct} />
+              <GA4ChannelCard label="Organic Search"  color={GA4_SEARCH} ch={ga4Data.organicSearch} />
             </div>
+
+            {/* Week-on-week sessions chart */}
             <div className="rounded-xl bg-slate-800 ring-1 ring-slate-700 p-5">
-              <h4 className="text-sm font-semibold text-slate-300 mb-4">Sessions Over Time</h4>
-              <GA4SessionsLine byDate={ga4Data.byDate} />
+              <h4 className="text-sm font-semibold text-slate-300 mb-4">Sessions by Week — All Channels</h4>
+              <GA4WeeklyChart combinedByDate={ga4Data.combinedByDate} />
             </div>
           </>
         )}
