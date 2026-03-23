@@ -119,7 +119,7 @@ export function getTotalPosts(weeklyData, year, month) {
 
 export function getTotalICPConnections(data, year, month) {
   return filterByMonth(data, year, month)
-    .reduce((s, r) => s + (r.ICP_Connections ?? 0), 0);
+    .reduce((s, r) => s + (r.ICP_Connection_Requests ?? 0), 0);
 }
 
 // ── Goal helpers ─────────────────────────────────────────────────────────────

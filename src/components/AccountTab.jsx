@@ -52,7 +52,7 @@ export default function AccountTab({ account, weeklyData, monthlyData, postsData
     const goalImpressions = findGoal(goals, account, 'Impressions');
     const goalEngagement = findGoal(goals, account, 'Engagement_Rate');
     const goalPosts = isAdam ? findGoal(goals, account, 'Posts_Published') : null;
-    const goalICP = isAdam ? findGoal(goals, account, 'ICP_Connections') : null;
+    const goalICP = isAdam ? findGoal(goals, account, 'ICP_Connection_Requests') : null;
 
     const growthOT = isOnTrack(growth, goalGrowth, cy, cm);
     const impressionsOT = isOnTrack(impressions, goalImpressions, cy, cm);
@@ -167,7 +167,7 @@ export default function AccountTab({ account, weeklyData, monthlyData, postsData
         <ImpressionsChart
           weeklyData={weeklyData}
           color={color}
-          dataKey="ICP_Connections"
+          dataKey="ICP_Connection_Requests"
           label="ICP Connections"
         />
       )}

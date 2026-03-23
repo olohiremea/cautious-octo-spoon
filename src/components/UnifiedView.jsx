@@ -80,7 +80,7 @@ export default function UnifiedView({ adamWeekly, adamMonthly, choreWeekly, chor
       impressions: findGoal(goals, 'Adam', 'Impressions'),
       engagement:  findGoal(goals, 'Adam', 'Engagement_Rate'),
       posts:       findGoal(goals, 'Adam', 'Posts_Published'),
-      icp:         findGoal(goals, 'Adam', 'ICP_Connections'),
+      icp:         findGoal(goals, 'Adam', 'ICP_Connection_Requests'),
     };
     const choreGoals = {
       growth:      findGoal(goals, 'Chore', 'Followers_Growth'),
