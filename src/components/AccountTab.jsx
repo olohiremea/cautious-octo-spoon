@@ -140,9 +140,9 @@ export default function AccountTab({ account, weeklyData, monthlyData, postsData
       {/* Charts */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         <SingleFollowerChart weeklyData={weeklyData} color={color} label="Followers" />
-        <ImpressionsChart weeklyData={monthlyData} color={color} />
+        <ImpressionsChart weeklyData={weeklyData} color={color} />
       </div>
-      <EngagementChart weeklyData={monthlyData} color={color} goalRate={m.goalEngagement} />
+      <EngagementChart weeklyData={weeklyData} color={color} goalRate={m.goalEngagement} />
 
       {/* Posts table */}
       <PostsTable posts={postsData} account={account} accentColor={color} />
