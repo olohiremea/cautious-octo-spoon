@@ -350,8 +350,9 @@ export default function UnifiedView({ adamWeekly, adamMonthly, choreWeekly, chor
       <div className="space-y-3">
         <div>
           <h3 className="text-sm font-semibold text-slate-300">LinkedIn — Weekly Trends</h3>
-          <p className="text-xs text-slate-500 mt-0.5">Impressions and engagement rate by week for both accounts</p>
+          <p className="text-xs text-slate-500 mt-0.5">Follower growth, impressions and engagement rate by week for both accounts</p>
         </div>
+        <CombinedFollowerChart adamWeekly={adamWeekly} choreWeekly={choreWeekly} />
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
           <CombinedImpressionsChart
             adamWeekly={adamWeekly}
@@ -404,9 +405,6 @@ export default function UnifiedView({ adamWeekly, adamMonthly, choreWeekly, chor
           </>
         )}
       </div>
-
-      {/* Combined follower chart */}
-      <CombinedFollowerChart adamWeekly={adamWeekly} choreWeekly={choreWeekly} />
 
       {/* AI Insights */}
       <AIInsights
