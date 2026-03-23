@@ -10,6 +10,7 @@ import {
   getTotalImpressions,
   getAvgEngagementRate,
   getTotalPosts,
+  getTotalICPConnections,
   getCurrentFollowers,
   isOnTrack,
   findGoal,
@@ -43,18 +44,24 @@ export default function AccountTab({ account, weeklyData, monthlyData, postsData
     const posts = isAdam ? getTotalPosts(monthlyData, cy, cm) : null;
     const postsLast = isAdam ? getTotalPosts(monthlyData, ly, lm) : null;
 
+    // ICP Connections — Adam only (number from monthly data)
+    const icpConnections = isAdam ? getTotalICPConnections(monthlyData, cy, cm) : null;
+    const icpLast = isAdam ? getTotalICPConnections(monthlyData, ly, lm) : null;
+
     const goalGrowth = findGoal(goals, account, 'Followers_Growth');
     const goalImpressions = findGoal(goals, account, 'Impressions');
     const goalEngagement = findGoal(goals, account, 'Engagement_Rate');
     const goalPosts = isAdam ? findGoal(goals, account, 'Posts_Published') : null;
+    const goalICP = isAdam ? findGoal(goals, account, 'ICP_Connections') : null;
 
     const growthOT = isOnTrack(growth, goalGrowth, cy, cm);
     const impressionsOT = isOnTrack(impressions, goalImpressions, cy, cm);
     const engagementOT = isOnTrack(engagement, goalEngagement, cy, cm);
     const postsOT = isAdam ? isOnTrack(posts, goalPosts, cy, cm) : null;
+    const icpOT = isAdam ? isOnTrack(icpConnections, goalICP, cy, cm) : null;
 
     const trackingList = isAdam
-      ? [growthOT, impressionsOT, engagementOT, postsOT]
+      ? [growthOT, impressionsOT, engagementOT, postsOT, icpOT]
       : [growthOT, impressionsOT, engagementOT];
 
     const healthScore = calculateHealthScore(trackingList);
@@ -65,8 +72,9 @@ export default function AccountTab({ account, weeklyData, monthlyData, postsData
       impressions, impressionsChange: formatChange(impressions, impressionsLast),
       engagement, engagementChange: formatChange(engagement, engagementLast),
       posts, postsChange: isAdam ? formatChange(posts, postsLast) : null,
-      goalGrowth, goalImpressions, goalEngagement, goalPosts,
-      growthOT, impressionsOT, engagementOT, postsOT,
+      icpConnections, icpChange: isAdam ? formatChange(icpConnections, icpLast) : null,
+      goalGrowth, goalImpressions, goalEngagement, goalPosts, goalICP,
+      growthOT, impressionsOT, engagementOT, postsOT, icpOT,
       healthScore,
     };
   }, [weeklyData, monthlyData, goals, account, cy, cm, ly, lm, isAdam]);
@@ -135,6 +143,17 @@ export default function AccountTab({ account, weeklyData, monthlyData, postsData
             subLabel="This month"
           />
         )}
+        {isAdam && (
+          <MetricCard
+            label="ICP Connections"
+            value={formatNumber(m.icpConnections)}
+            change={m.icpChange}
+            onTrack={m.icpOT}
+            accent={color}
+            goal={m.goalICP ? formatNumber(m.goalICP) : null}
+            subLabel="This month"
+          />
+        )}
       </div>
 
       {/* Charts */}
@@ -143,6 +162,15 @@ export default function AccountTab({ account, weeklyData, monthlyData, postsData
         <ImpressionsChart weeklyData={weeklyData} color={color} />
       </div>
       <EngagementChart weeklyData={weeklyData} color={color} goalRate={m.goalEngagement} />
+
+      {isAdam && (
+        <ImpressionsChart
+          weeklyData={weeklyData}
+          color={color}
+          dataKey="ICP_Connections"
+          label="ICP Connections"
+        />
+      )}
 
       {/* Posts table */}
       <PostsTable posts={postsData} account={account} accentColor={color} />

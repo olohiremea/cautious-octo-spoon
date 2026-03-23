@@ -115,6 +115,13 @@ export function getTotalPosts(weeklyData, year, month) {
     .reduce((s, r) => s + (r.Posts_Published ?? 0), 0);
 }
 
+// ── ICP Connection helpers ────────────────────────────────────────────────────
+
+export function getTotalICPConnections(data, year, month) {
+  return filterByMonth(data, year, month)
+    .reduce((s, r) => s + (r.ICP_Connections ?? 0), 0);
+}
+
 // ── Goal helpers ─────────────────────────────────────────────────────────────
 
 /** Pro-rated monthly goal based on today's day-of-month */
