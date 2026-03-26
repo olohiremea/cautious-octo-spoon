@@ -26,6 +26,24 @@ function makeClient() {
   return null;
 }
 
+// Resolve the target user ID — prefers the explicit X_USER_ID env var,
+// falls back to looking up X_USERNAME. Result is cached in-process.
+let _cachedUserId = null;
+async function resolveUserId(client) {
+  if (_cachedUserId) return _cachedUserId;
+  if (process.env.X_USER_ID) {
+    _cachedUserId = process.env.X_USER_ID;
+    return _cachedUserId;
+  }
+  const username = (process.env.X_USERNAME || '').replace(/^@/, '');
+  if (!username) return null;
+  const res = await client.v2.userByUsername(username);
+  if (res.data?.id) {
+    _cachedUserId = res.data.id;
+  }
+  return _cachedUserId;
+}
+
 // Return the ISO week number (Mon–Sun) for a given Date
 function isoWeek(date) {
   const d = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
@@ -48,11 +66,11 @@ export default async function handler(req, res) {
     });
   }
 
-  const X_USER_ID = process.env.X_USER_ID;
+  const X_USER_ID = await resolveUserId(client);
   if (!X_USER_ID) {
     return res.status(503).json({
       error:
-        'X_USER_ID is not configured. Set it to the numeric X user ID you want to track.',
+        'Set X_USER_ID (numeric) or X_USERNAME in your environment variables so the endpoint knows which account to track.',
     });
   }
 
