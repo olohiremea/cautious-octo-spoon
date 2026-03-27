@@ -130,7 +130,7 @@ export default function SalesTab({ year, month }) {
   const monthName = new Date(year, month, 1).toLocaleString('default', { month: 'long', year: 'numeric' });
 
   const leads       = data?.leads       ?? {};
-  const calls       = data?.calls       ?? {};
+  const appts       = data?.appointmentsHeld ?? {};
   const conversions = data?.conversions ?? {};
 
   const convRateStr = conversions.conversionRate != null
@@ -149,7 +149,7 @@ export default function SalesTab({ year, month }) {
             <PipedriveIcon className="h-5 w-5 text-orange-400" />
             Sales — {monthName}
           </h2>
-          <p className="text-sm text-slate-500 mt-0.5">Pipedrive CRM · Leads, calls and conversions</p>
+          <p className="text-sm text-slate-500 mt-0.5">Pipedrive CRM · Leads, appointments and conversions</p>
         </div>
       </div>
 
@@ -176,10 +176,10 @@ export default function SalesTab({ year, month }) {
               subLabel="New deals created this month"
             />
             <MetricCard
-              label="Calls Held"
-              value={formatNumber(calls.held ?? 0)}
+              label="Appointments Held"
+              value={formatNumber(appts.total ?? 0)}
               accent={SALES_ORANGE}
-              subLabel={`${formatNumber(calls.total ?? 0)} scheduled · ${formatNumber(calls.held ?? 0)} completed`}
+              subLabel={appts.stageFound === false ? 'Stage "Appointment Held" not found in Pipedrive' : 'Deals moved to Appointment Held stage'}
             />
             <MetricCard
               label="Conversions"

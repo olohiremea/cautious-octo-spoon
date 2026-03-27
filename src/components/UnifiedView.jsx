@@ -445,11 +445,11 @@ export default function UnifiedView({ adamWeekly, adamMonthly, choreWeekly, chor
               className="rounded-xl bg-slate-800 ring-1 ring-slate-700 p-4 flex flex-col gap-1 shadow-md"
               style={{ borderLeft: `3px solid ${SALES_ORANGE}` }}
             >
-              <span className="text-xs font-semibold uppercase tracking-wider text-slate-400">Calls Held</span>
+              <span className="text-xs font-semibold uppercase tracking-wider text-slate-400">Appointments Held</span>
               <span className="text-3xl font-bold text-slate-100 leading-none">
-                {formatNumber(pipedriveData.calls?.held ?? 0)}
+                {formatNumber(pipedriveData.appointmentsHeld?.total ?? 0)}
               </span>
-              <span className="text-xs text-slate-500">Completed call activities</span>
+              <span className="text-xs text-slate-500">Moved to Appointment Held stage</span>
             </div>
             <div
               className="rounded-xl bg-slate-800 ring-1 ring-slate-700 p-4 flex flex-col gap-1 shadow-md"

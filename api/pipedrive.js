@@ -122,17 +122,21 @@ export default async function handler(req, res) {
   const { start, end } = monthRange(year, month);
 
   try {
-    // Fetch deal fields and all deals + calls in parallel
-    const [dealFieldsRes, allDeals, calls] = await Promise.all([
+    // Fetch deal fields, all deals, and pipeline stages in parallel
+    const [dealFieldsRes, allDeals, stagesRes] = await Promise.all([
       pd('/dealFields', { limit: 100 }),
       fetchAll('/deals', { status: 'all_not_deleted' }),
-      // Activities: type=call, date range based on due_date
-      fetchAll('/activities', { type: 'call', start_date: start, end_date: end }),
+      fetchAll('/stages'),
     ]);
 
     const dealFields = dealFieldsRes.data ?? [];
     const sourceField = findSourceField(dealFields);
     const enumMap    = buildEnumMap(sourceField);
+
+    // Find the "Appointment Held" stage (case-insensitive)
+    const apptStage = stagesRes.find(
+      (s) => s.name.trim().toLowerCase() === 'appointment held',
+    );
 
     // ── Filter deals to the selected month ──────────────────────────────────
     // "Inbound leads" = deals created this month
@@ -148,8 +152,16 @@ export default async function handler(req, res) {
       (d) => d.status === 'lost' && inMonth(d.close_time, start, end),
     );
 
-    // ── Calls held (done=1) ──────────────────────────────────────────────────
-    const callsHeld = calls.filter((a) => a.done === true || a.done === 1);
+    // ── Appointments held ────────────────────────────────────────────────────
+    // Count deals whose stage was changed to "Appointment Held" this month.
+    // stage_change_time reflects when the deal last moved to its current stage.
+    const appointmentsHeld = apptStage
+      ? allDeals.filter(
+          (d) =>
+            d.stage_id === apptStage.id &&
+            inMonth(d.stage_change_time, start, end),
+        )
+      : [];
 
     // ── Source breakdown ─────────────────────────────────────────────────────
     const sourceKey = sourceField?.key ?? null;
@@ -194,9 +206,9 @@ export default async function handler(req, res) {
         bySource,
         weekly:  weeklyLeads,
       },
-      calls: {
-        total:    calls.length,
-        held:     callsHeld.length,
+      appointmentsHeld: {
+        total:          appointmentsHeld.length,
+        stageFound:     !!apptStage,
       },
       conversions: {
         won:            wonDeals.length,
