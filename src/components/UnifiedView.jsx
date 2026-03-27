@@ -9,6 +9,7 @@ import HealthScoreRing from './HealthScoreRing';
 import { CombinedFollowerChart } from './FollowerChart';
 import AIInsights from './AIInsights';
 import useGA4Data from '../hooks/useGA4Data';
+import usePipedriveData from '../hooks/usePipedriveData';
 import {
   getFollowerGrowth,
   getTotalImpressions,
@@ -27,6 +28,8 @@ import {
 
 const ADAM_BLUE    = '#3B82F6';
 const CHORE_PURPLE = '#8B5CF6';
+const SALES_ORANGE = '#f97316';
+const WON_GREEN    = '#22c55e';
 const GA4_SOCIAL   = '#34d399';
 const GA4_DIRECT   = '#60a5fa';
 const GA4_SEARCH   = '#fbbf24';
@@ -220,7 +223,8 @@ export default function UnifiedView({ adamWeekly, adamMonthly, choreWeekly, chor
   const cy = year;
   const cm = month;
 
-  const { data: ga4Data, loading: ga4Loading, error: ga4Error } = useGA4Data(year, month);
+  const { data: ga4Data,        loading: ga4Loading,        error: ga4Error        } = useGA4Data(year, month);
+  const { data: pipedriveData,  loading: pipedriveLoading,  error: pipedriveError  } = usePipedriveData(year, month);
 
   const metrics = useMemo(() => {
     const adamFollowers   = getCurrentFollowers(adamWeekly);
@@ -403,6 +407,73 @@ export default function UnifiedView({ adamWeekly, adamMonthly, choreWeekly, chor
               <GA4WeeklyChart combinedByDate={ga4Data.combinedByDate} />
             </div>
           </>
+        )}
+      </div>
+
+      {/* Sales — Pipedrive */}
+      <div className="space-y-3">
+        <div>
+          <h3 className="text-sm font-semibold text-slate-300">Sales</h3>
+          <p className="text-xs text-slate-500 mt-0.5">Pipedrive CRM · Inbound leads, calls and conversions</p>
+        </div>
+
+        {pipedriveLoading && (
+          <div className="rounded-xl bg-slate-800 ring-1 ring-slate-700 p-6 text-center text-sm text-slate-500">
+            Loading Pipedrive data…
+          </div>
+        )}
+
+        {!pipedriveLoading && pipedriveError && (
+          <div className="rounded-xl bg-slate-800 ring-1 ring-slate-700 p-4 text-sm text-red-400">
+            {pipedriveError}
+          </div>
+        )}
+
+        {!pipedriveLoading && pipedriveData && (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div
+              className="rounded-xl bg-slate-800 ring-1 ring-slate-700 p-4 flex flex-col gap-1 shadow-md"
+              style={{ borderLeft: `3px solid ${SALES_ORANGE}` }}
+            >
+              <span className="text-xs font-semibold uppercase tracking-wider text-slate-400">Inbound Leads</span>
+              <span className="text-3xl font-bold text-slate-100 leading-none">
+                {formatNumber(pipedriveData.leads?.total ?? 0)}
+              </span>
+              <span className="text-xs text-slate-500">New deals this month</span>
+            </div>
+            <div
+              className="rounded-xl bg-slate-800 ring-1 ring-slate-700 p-4 flex flex-col gap-1 shadow-md"
+              style={{ borderLeft: `3px solid ${SALES_ORANGE}` }}
+            >
+              <span className="text-xs font-semibold uppercase tracking-wider text-slate-400">Calls Held</span>
+              <span className="text-3xl font-bold text-slate-100 leading-none">
+                {formatNumber(pipedriveData.calls?.held ?? 0)}
+              </span>
+              <span className="text-xs text-slate-500">Completed call activities</span>
+            </div>
+            <div
+              className="rounded-xl bg-slate-800 ring-1 ring-slate-700 p-4 flex flex-col gap-1 shadow-md"
+              style={{ borderLeft: `3px solid ${WON_GREEN}` }}
+            >
+              <span className="text-xs font-semibold uppercase tracking-wider text-slate-400">Conversions</span>
+              <span className="text-3xl font-bold text-slate-100 leading-none">
+                {formatNumber(pipedriveData.conversions?.won ?? 0)}
+              </span>
+              <span className="text-xs text-slate-500">Deals won this month</span>
+            </div>
+            <div
+              className="rounded-xl bg-slate-800 ring-1 ring-slate-700 p-4 flex flex-col gap-1 shadow-md"
+              style={{ borderLeft: `3px solid ${WON_GREEN}` }}
+            >
+              <span className="text-xs font-semibold uppercase tracking-wider text-slate-400">Conversion Rate</span>
+              <span className="text-3xl font-bold text-slate-100 leading-none">
+                {pipedriveData.conversions?.conversionRate != null
+                  ? `${pipedriveData.conversions.conversionRate}%`
+                  : '—'}
+              </span>
+              <span className="text-xs text-slate-500">Won / new leads</span>
+            </div>
+          </div>
         )}
       </div>
 
