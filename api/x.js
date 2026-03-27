@@ -127,34 +127,38 @@ export default async function handler(req, res) {
     const prevFollowers = null;
 
     // ── Aggregate monthly totals ─────────────────────────────────────────────
-    let totalImpressions = 0;
-    let totalLikes       = 0;
-    let totalRetweets    = 0;
-    let totalReplies     = 0;
-    let totalEngagements = 0;
+    let totalImpressions   = 0;
+    let totalLikes         = 0;
+    let totalRetweets      = 0;
+    let totalReplies       = 0;
+    let totalEngagements   = 0;
+    let totalProfileClicks = 0;
 
     const tweetList = tweets.map((t) => {
       const pub  = t.public_metrics ?? {};
       const priv = t.non_public_metrics ?? {};
 
-      const impressions  = priv.impression_count  ?? null;
-      const likes        = pub.like_count          ?? 0;
-      const retweets     = pub.retweet_count       ?? 0;
-      const replies      = pub.reply_count         ?? 0;
-      const quotes       = pub.quote_count         ?? 0;
-      const engagements  = likes + retweets + replies + quotes;
+      const impressions    = priv.impression_count    ?? null;
+      const profileClicks  = priv.user_profile_clicks ?? null;
+      const likes          = pub.like_count           ?? 0;
+      const retweets       = pub.retweet_count        ?? 0;
+      const replies        = pub.reply_count          ?? 0;
+      const quotes         = pub.quote_count          ?? 0;
+      const engagements    = likes + retweets + replies + quotes;
       const engagementRate = impressions ? (engagements / impressions) * 100 : null;
 
-      if (impressions  != null) totalImpressions += impressions;
-      totalLikes       += likes;
-      totalRetweets    += retweets;
-      totalReplies     += replies;
-      totalEngagements += engagements;
+      if (impressions   != null) totalImpressions   += impressions;
+      if (profileClicks != null) totalProfileClicks += profileClicks;
+      totalLikes         += likes;
+      totalRetweets      += retweets;
+      totalReplies       += replies;
+      totalEngagements   += engagements;
 
       return {
         id:              t.id,
         createdAt:       t.created_at,
         impressions,
+        profileClicks,
         likes,
         retweets,
         replies,
@@ -200,7 +204,8 @@ export default async function handler(req, res) {
         year,
         month,
         tweetsPublished,
-        impressions:     totalImpressions || null,
+        impressions:     totalImpressions   || null,
+        profileClicks:   totalProfileClicks || null,
         likes:           totalLikes,
         retweets:        totalRetweets,
         replies:         totalReplies,
