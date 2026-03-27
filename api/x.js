@@ -66,14 +66,6 @@ export default async function handler(req, res) {
     });
   }
 
-  const X_USER_ID = await resolveUserId(client);
-  if (!X_USER_ID) {
-    return res.status(503).json({
-      error:
-        'Set X_USER_ID (numeric) or X_USERNAME in your environment variables so the endpoint knows which account to track.',
-    });
-  }
-
   const year  = parseInt(req.query.year,  10);
   const month = parseInt(req.query.month, 10); // 1-indexed
   if (!year || !month || month < 1 || month > 12) {
@@ -101,6 +93,14 @@ export default async function handler(req, res) {
   ];
 
   try {
+    const X_USER_ID = await resolveUserId(client);
+    if (!X_USER_ID) {
+      return res.status(503).json({
+        error:
+          'Set X_USER_ID (numeric) or X_USERNAME in your environment variables so the endpoint knows which account to track.',
+      });
+    }
+
     const rwClient = client.readOnly ?? client;
 
     // ── Fetch user profile ───────────────────────────────────────────────────
