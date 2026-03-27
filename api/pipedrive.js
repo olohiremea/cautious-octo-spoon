@@ -53,23 +53,46 @@ function inMonth(dateStr, start, end) {
 }
 
 // ── Source field detection ─────────────────────────────────────────────────────
-// Look for a deal custom field whose name suggests it tracks lead source / channel.
-// Returns the field key (hash string) or null if none found.
+// Priority:
+//   1. Explicit override via PIPEDRIVE_SOURCE_FIELD env var (exact field name match)
+//   2. Field whose options contain the known source prefixes used in this account
+//   3. Field whose name contains a generic source/channel keyword
 
-const SOURCE_KEYWORDS = ['source', 'channel', 'origin', 'utm', 'medium', 'referral'];
+const SOURCE_NAME_KEYWORDS = ['source', 'channel', 'origin', 'utm', 'medium', 'lead source'];
+
+// Option label prefixes known to exist in this Pipedrive account
+const KNOWN_PREFIXES = ['referral -', 'paid -', 'inbound -', 'outbound -'];
+
+function fieldHasKnownOptions(field) {
+  if (!field.options?.length) return false;
+  return field.options.some((o) =>
+    KNOWN_PREFIXES.some((prefix) => String(o.label).toLowerCase().startsWith(prefix)),
+  );
+}
 
 function findSourceField(fields) {
-  const candidates = fields.filter(
+  const enumFields = fields.filter(
+    (f) => f.field_type === 'enum' || f.field_type === 'set',
+  );
+
+  // 1. Explicit env override
+  const override = process.env.PIPEDRIVE_SOURCE_FIELD?.trim().toLowerCase();
+  if (override) {
+    const match = fields.find((f) => f.name.toLowerCase() === override);
+    if (match) return match;
+  }
+
+  // 2. Field whose options match the known source label patterns
+  const byOptions = enumFields.find(fieldHasKnownOptions);
+  if (byOptions) return byOptions;
+
+  // 3. Field whose name contains a generic keyword
+  const byName = fields.find(
     (f) =>
       (f.field_type === 'enum' || f.field_type === 'set' || f.field_type === 'varchar') &&
-      SOURCE_KEYWORDS.some((kw) => f.name.toLowerCase().includes(kw)),
+      SOURCE_NAME_KEYWORDS.some((kw) => f.name.toLowerCase().includes(kw)),
   );
-  // Prefer enum/set (dropdown) fields — they give clean categorical values
-  return (
-    candidates.find((f) => f.field_type === 'enum' || f.field_type === 'set') ??
-    candidates[0] ??
-    null
-  );
+  return byName ?? null;
 }
 
 // Resolve enum value IDs to labels using the field's options array
