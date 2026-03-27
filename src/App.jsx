@@ -5,14 +5,12 @@ import ErrorState from './components/ErrorState';
 import UnifiedView from './components/UnifiedView';
 import AccountTab from './components/AccountTab';
 import WebTrafficTab from './components/WebTrafficTab';
-import XTab from './components/XTab';
 import { currentMonthYM } from './utils/dataHelpers';
 
 const TABS = [
   { id: 'overview', label: 'Unified View' },
   { id: 'adam',     label: "Adam's LinkedIn" },
   { id: 'chore',    label: "Chore's LinkedIn" },
-  { id: 'x',        label: "Adam's X" },
   { id: 'website',  label: 'Website Traffic' },
 ];
 
@@ -159,11 +157,7 @@ export default function App() {
           <ErrorState message={error} onRetry={load} />
         )}
 
-        {/* X and Website Traffic tabs are independent of sheet data */}
-        {!loading && activeTab === 'x' && (
-          <XTab year={selectedYM.year} month={selectedYM.month} />
-        )}
-
+        {/* Website Traffic tab is independent of sheet data */}
         {!loading && activeTab === 'website' && (
           <WebTrafficTab year={selectedYM.year} month={selectedYM.month} />
         )}

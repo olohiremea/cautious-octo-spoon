@@ -9,7 +9,6 @@ import HealthScoreRing from './HealthScoreRing';
 import { CombinedFollowerChart } from './FollowerChart';
 import AIInsights from './AIInsights';
 import useGA4Data from '../hooks/useGA4Data';
-import useXData from '../hooks/useXData';
 import {
   getFollowerGrowth,
   getTotalImpressions,
@@ -28,7 +27,6 @@ import {
 
 const ADAM_BLUE    = '#3B82F6';
 const CHORE_PURPLE = '#8B5CF6';
-const X_BLUE       = '#1D9BF0';
 const GA4_SOCIAL   = '#34d399';
 const GA4_DIRECT   = '#60a5fa';
 const GA4_SEARCH   = '#fbbf24';
@@ -223,7 +221,6 @@ export default function UnifiedView({ adamWeekly, adamMonthly, choreWeekly, chor
   const cm = month;
 
   const { data: ga4Data, loading: ga4Loading, error: ga4Error } = useGA4Data(year, month);
-  const { data: xData,  loading: xLoading,  error: xError  } = useXData(year, month);
 
   const metrics = useMemo(() => {
     const adamFollowers   = getCurrentFollowers(adamWeekly);
@@ -370,124 +367,6 @@ export default function UnifiedView({ adamWeekly, adamMonthly, choreWeekly, chor
             month={month}
           />
         </div>
-      </div>
-
-      {/* X — Weekly Trends */}
-      <div className="space-y-3">
-        <div>
-          <h3 className="text-sm font-semibold text-slate-300">X — Weekly Trends</h3>
-          <p className="text-xs text-slate-500 mt-0.5">
-            {xData?.profile?.username ? `@${xData.profile.username} · ` : ''}
-            Followers, impressions and engagement for Adam's X account
-          </p>
-        </div>
-
-        {xLoading && (
-          <div className="rounded-xl bg-slate-800 ring-1 ring-slate-700 p-6 text-center text-sm text-slate-500">
-            Loading X data…
-          </div>
-        )}
-
-        {!xLoading && xError && (
-          <div className="rounded-xl bg-slate-800 ring-1 ring-slate-700 p-4 text-sm text-red-400">
-            {xError}
-          </div>
-        )}
-
-        {!xLoading && xData && (
-          <>
-            {/* Followers + Impressions metric cards */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-              <div
-                className="rounded-xl bg-slate-800 ring-1 ring-slate-700 p-4 flex flex-col gap-1 shadow-md"
-                style={{ borderLeft: `3px solid ${X_BLUE}` }}
-              >
-                <span className="text-xs font-semibold uppercase tracking-wider text-slate-400">Followers</span>
-                <span className="text-3xl font-bold text-slate-100 leading-none">
-                  {formatNumber(xData.profile?.followers)}
-                </span>
-                <span className="text-xs text-slate-500">All-time cumulative</span>
-              </div>
-              <div
-                className="rounded-xl bg-slate-800 ring-1 ring-slate-700 p-4 flex flex-col gap-1 shadow-md"
-                style={{ borderLeft: `3px solid ${X_BLUE}` }}
-              >
-                <span className="text-xs font-semibold uppercase tracking-wider text-slate-400">Impressions</span>
-                <span className="text-3xl font-bold text-slate-100 leading-none">
-                  {xData.monthly?.impressions != null ? formatNumber(xData.monthly.impressions) : '—'}
-                </span>
-                <span className="text-xs text-slate-500">This month total</span>
-              </div>
-              <div
-                className="rounded-xl bg-slate-800 ring-1 ring-slate-700 p-4 flex flex-col gap-1 shadow-md"
-                style={{ borderLeft: `3px solid ${X_BLUE}` }}
-              >
-                <span className="text-xs font-semibold uppercase tracking-wider text-slate-400">Engagement Rate</span>
-                <span className="text-3xl font-bold text-slate-100 leading-none">
-                  {xData.monthly?.engagementRate != null ? `${xData.monthly.engagementRate.toFixed(2)}%` : '—'}
-                </span>
-                <span className="text-xs text-slate-500">Engagements / impressions</span>
-              </div>
-              <div
-                className="rounded-xl bg-slate-800 ring-1 ring-slate-700 p-4 flex flex-col gap-1 shadow-md"
-                style={{ borderLeft: `3px solid ${X_BLUE}` }}
-              >
-                <span className="text-xs font-semibold uppercase tracking-wider text-slate-400">Tweets Published</span>
-                <span className="text-3xl font-bold text-slate-100 leading-none">
-                  {xData.monthly?.tweetsPublished ?? 0}
-                </span>
-                <span className="text-xs text-slate-500">This month</span>
-              </div>
-            </div>
-
-            {/* Weekly impressions + follower charts */}
-            {xData.weekly?.length > 0 && (
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-                {/* Weekly impressions bar chart */}
-                <div className="rounded-xl bg-slate-800 ring-1 ring-slate-700 p-5">
-                  <h4 className="text-sm font-semibold text-slate-300 mb-4">Weekly Impressions</h4>
-                  <ResponsiveContainer width="100%" height={220}>
-                    <BarChart
-                      data={xData.weekly.map((w) => ({
-                        week: String(w.week).match(/W(\d+)$/) ? `Wk ${parseInt(String(w.week).match(/W(\d+)$/)[1], 10)}` : w.week,
-                        Impressions: w.impressions,
-                      }))}
-                      margin={{ top: 4, right: 16, left: 0, bottom: 0 }}
-                    >
-                      <CartesianGrid strokeDasharray="3 3" stroke="#334155" vertical={false} />
-                      <XAxis dataKey="week" tick={{ fontSize: 11, fill: '#94a3b8' }} tickLine={false} axisLine={false} />
-                      <YAxis tick={{ fontSize: 11, fill: '#94a3b8' }} width={44} tickFormatter={formatNumber} tickLine={false} axisLine={false} />
-                      <Tooltip content={<DarkTooltip />} cursor={{ fill: 'rgba(148,163,184,0.05)' }} />
-                      <Legend wrapperStyle={{ fontSize: 12, color: '#94a3b8', paddingTop: 8 }} />
-                      <Bar dataKey="Impressions" fill={X_BLUE} radius={[4, 4, 0, 0]} fillOpacity={0.85} />
-                    </BarChart>
-                  </ResponsiveContainer>
-                </div>
-
-                {/* Weekly engagements line chart */}
-                <div className="rounded-xl bg-slate-800 ring-1 ring-slate-700 p-5">
-                  <h4 className="text-sm font-semibold text-slate-300 mb-4">Weekly Engagements</h4>
-                  <ResponsiveContainer width="100%" height={220}>
-                    <LineChart
-                      data={xData.weekly.map((w) => ({
-                        week: String(w.week).match(/W(\d+)$/) ? `Wk ${parseInt(String(w.week).match(/W(\d+)$/)[1], 10)}` : w.week,
-                        Engagements: w.engagements,
-                      }))}
-                      margin={{ top: 4, right: 16, left: 0, bottom: 0 }}
-                    >
-                      <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
-                      <XAxis dataKey="week" tick={{ fontSize: 11, fill: '#94a3b8' }} tickLine={false} axisLine={false} />
-                      <YAxis tick={{ fontSize: 11, fill: '#94a3b8' }} tickLine={false} axisLine={false} tickFormatter={formatNumber} width={44} />
-                      <Tooltip content={<DarkTooltip />} />
-                      <Legend wrapperStyle={{ fontSize: 12, color: '#94a3b8', paddingTop: 8 }} />
-                      <Line type="monotone" dataKey="Engagements" stroke={X_BLUE} strokeWidth={2.5} dot={{ r: 3, fill: X_BLUE, strokeWidth: 0 }} activeDot={{ r: 5 }} />
-                    </LineChart>
-                  </ResponsiveContainer>
-                </div>
-              </div>
-            )}
-          </>
-        )}
       </div>
 
       {/* Website Traffic — all channels */}

@@ -3,7 +3,6 @@ import express from 'express';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
 import { google } from 'googleapis';
-import xHandler from './api/x.js';
 
 const app = express();
 app.use(express.json());
@@ -225,10 +224,6 @@ app.get('/api/ga4', async (req, res) => {
     res.status(502).json({ error: err.message });
   }
 });
-
-// ── X (Twitter) API ──────────────────────────────────────────────────────────
-// GET /api/x?year=2026&month=3  (month is 1-indexed)
-app.get('/api/x', xHandler);
 
 // Serve built frontend in production
 const __dirname = dirname(fileURLToPath(import.meta.url));
