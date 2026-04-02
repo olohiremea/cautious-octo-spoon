@@ -70,7 +70,7 @@ export default async function handler(req, res) {
     const analyticsdata = google.analyticsdata({ version: 'v1beta', auth });
     const property = `properties/${GA4_PROPERTY_ID}`;
 
-    const [byDateRes, bySourceRes, prevByChannelRes] = await Promise.all([
+    const [byDateRes, bySourceRes, prevByChannelRes, demoFunnelRes] = await Promise.all([
       // Current month: sessions by date × channel (all 3 channels)
       analyticsdata.properties.runReport({
         property,
@@ -113,6 +113,28 @@ export default async function handler(req, res) {
             { name: 'screenPageViews' },
           ],
           dimensionFilter: channelFilter,
+        },
+      }),
+      // Demo page funnel: sessions by channel that included a /demo page view
+      analyticsdata.properties.runReport({
+        property,
+        requestBody: {
+          dateRanges: [{ startDate, endDate }],
+          dimensions: [{ name: 'sessionDefaultChannelGrouping' }],
+          metrics: [{ name: 'sessions' }],
+          dimensionFilter: {
+            andGroup: {
+              expressions: [
+                channelFilter,
+                {
+                  filter: {
+                    fieldName: 'pagePath',
+                    stringFilter: { value: '/demo', matchType: 'BEGINS_WITH' },
+                  },
+                },
+              ],
+            },
+          },
         },
       }),
     ]);
@@ -189,12 +211,30 @@ export default async function handler(req, res) {
       users:    parseInt(row.metricValues[1].value, 10),
     }));
 
+    // ── Demo page funnel ──────────────────────────────────────────────────────
+    const demoByChannel = {};
+    for (const row of demoFunnelRes.data.rows ?? []) {
+      demoByChannel[row.dimensionValues[0].value] = parseInt(row.metricValues[0].value, 10);
+    }
+    const totalSessions = organicSocial.totals.sessions + direct.totals.sessions + organicSearch.totals.sessions;
+    const demoSessions  = Object.values(demoByChannel).reduce((s, n) => s + n, 0);
+    const funnelData = {
+      totalSessions,
+      demoSessions,
+      byChannel: [
+        { channel: 'Organic Social', color: '#34d399', sessions: organicSocial.totals.sessions, demoSessions: demoByChannel['Organic Social'] ?? 0 },
+        { channel: 'Direct',         color: '#60a5fa', sessions: direct.totals.sessions,        demoSessions: demoByChannel['Direct']         ?? 0 },
+        { channel: 'Organic Search', color: '#fbbf24', sessions: organicSearch.totals.sessions, demoSessions: demoByChannel['Organic Search'] ?? 0 },
+      ],
+    };
+
     res.json({
       organicSocial,
       direct,
       organicSearch,
       combinedByDate,
       bySource,
+      funnelData,
       // Backward-compat flat fields (organic social) used by UnifiedView
       totals:     organicSocial.totals,
       prevTotals: organicSocial.prevTotals,

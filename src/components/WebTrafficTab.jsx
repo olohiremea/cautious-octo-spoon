@@ -55,7 +55,87 @@ function toWeekly(combinedByDate) {
   return Object.values(weeks);
 }
 
+const DEMO_ORANGE = '#f97316';
+
 // ── Sub-components ────────────────────────────────────────────────────────────
+
+function TrafficFunnel({ funnelData }) {
+  if (!funnelData) return null;
+  const { totalSessions, demoSessions, byChannel } = funnelData;
+  const cvr = totalSessions > 0 ? (demoSessions / totalSessions) * 100 : 0;
+  // Clamp demo bar width: proportional to CVR but never thinner than 20% or wider than 100%
+  const demoWidthPct = totalSessions > 0 ? Math.max(20, Math.min(100, (demoSessions / totalSessions) * 100)) : 20;
+
+  return (
+    <div className="space-y-5">
+      {/* ── Two-step funnel ─────────────────────────────────────────────────── */}
+      <div className="flex flex-col items-center">
+        {/* Step 1 — All Traffic */}
+        <div className="w-full rounded-xl bg-slate-700/60 ring-1 ring-slate-600 px-6 py-4 flex items-center justify-between gap-4">
+          <div>
+            <p className="text-sm font-semibold text-slate-100">All Traffic</p>
+            <p className="text-xs text-slate-400 mt-0.5">Organic Social · Direct · Organic Search</p>
+          </div>
+          <span className="text-2xl font-bold text-slate-100 tabular-nums">{fmt(totalSessions)}</span>
+        </div>
+
+        {/* Connector */}
+        <div className="flex flex-col items-center gap-1 py-2 text-slate-400">
+          <div className="w-px h-3 bg-slate-600" />
+          <span className="text-xs font-semibold px-2.5 py-0.5 rounded-full bg-slate-800 ring-1 ring-slate-600">
+            {cvr.toFixed(1)}% reached demo
+          </span>
+          <div className="w-px h-3 bg-slate-600" />
+        </div>
+
+        {/* Step 2 — Demo page */}
+        <div
+          className="rounded-xl px-6 py-4 flex items-center justify-between gap-4 transition-[width] duration-500"
+          style={{ width: `${demoWidthPct}%`, minWidth: '200px', backgroundColor: DEMO_ORANGE }}
+        >
+          <div>
+            <p className="text-sm font-semibold text-white">Book a Demo</p>
+            <p className="text-xs text-orange-200 mt-0.5">hirechore.com/demo</p>
+          </div>
+          <span className="text-2xl font-bold text-white tabular-nums">{fmt(demoSessions)}</span>
+        </div>
+      </div>
+
+      {/* ── Per-channel conversion breakdown ───────────────────────────────── */}
+      <div className="space-y-2">
+        <p className="text-xs font-semibold uppercase tracking-wider text-slate-500">Conversion by Channel</p>
+        {byChannel.map(({ channel, color, sessions, demoSessions: demoCh }) => {
+          const chCvr = sessions > 0 ? (demoCh / sessions) * 100 : 0;
+          return (
+            <div key={channel} className="rounded-lg bg-slate-800 ring-1 ring-slate-700 p-4 space-y-2">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <div className="w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: color }} />
+                  <span className="text-sm font-medium text-slate-200">{channel}</span>
+                </div>
+                <div className="text-right text-xs">
+                  <span className="font-bold text-slate-100">{fmt(demoCh)}</span>
+                  <span className="text-slate-500"> demo · </span>
+                  <span className="font-semibold" style={{ color }}>{chCvr.toFixed(1)}% CVR</span>
+                </div>
+              </div>
+              <div className="flex items-center gap-3">
+                <div className="flex-1 h-1.5 rounded-full bg-slate-700 overflow-hidden">
+                  <div
+                    className="h-full rounded-full"
+                    style={{ width: `${Math.min(100, chCvr)}%`, backgroundColor: color, opacity: 0.85 }}
+                  />
+                </div>
+                <span className="text-xs text-slate-500 w-20 text-right tabular-nums">{fmt(sessions)} sessions</span>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
 
 function MetricCard({ label, value, prevValue, color = COLORS.organicSocial, goal, onTrack }) {
   const pct = pctChange(value, prevValue);
@@ -177,7 +257,7 @@ export default function WebTrafficTab({ year, month, goals = [] }) {
   if (loading) return <LoadingSkeleton />;
   if (error)   return <ErrorState message={error} onRetry={refresh} />;
 
-  const { organicSocial, direct, organicSearch, combinedByDate, bySource } = data;
+  const { organicSocial, direct, organicSearch, combinedByDate, bySource, funnelData } = data;
   const monthLabel = `${MONTH_NAMES[month]} ${year}`;
 
   const goalOrgSocial = findGoal(goals, 'Website', 'Organic_Social_Users');
@@ -209,6 +289,12 @@ export default function WebTrafficTab({ year, month, goals = [] }) {
             Refresh
           </button>
         </div>
+      </div>
+
+      {/* Conversion funnel — traffic sources → /demo */}
+      <div className="rounded-xl bg-slate-800 ring-1 ring-slate-700 p-5 space-y-4">
+        <h3 className="text-sm font-semibold text-slate-300">Traffic → Demo Conversion Funnel</h3>
+        <TrafficFunnel funnelData={funnelData} />
       </div>
 
       {/* Week-on-week traffic chart (all 3 channels) */}
