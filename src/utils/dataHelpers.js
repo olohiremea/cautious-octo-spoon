@@ -145,8 +145,12 @@ export function isOnTrack(currentValue, monthlyGoal, year, month) {
 
 /** Find a goal value from the goals array */
 export function findGoal(goals, account, metric) {
+  const acct = account.trim().toLowerCase();
+  const met  = metric.trim().toLowerCase();
   const row = goals.find(
-    (g) => g.Account === account && g.Metric === metric
+    (g) =>
+      String(g.Account ?? '').trim().toLowerCase() === acct &&
+      String(g.Metric  ?? '').trim().toLowerCase() === met,
   );
   return row ? row.Monthly_Goal : null;
 }
