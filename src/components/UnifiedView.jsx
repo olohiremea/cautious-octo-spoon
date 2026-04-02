@@ -408,8 +408,14 @@ export default function UnifiedView({ adamWeekly, adamMonthly, choreWeekly, chor
           const orgSocialOT = isOnTrack(ga4Data.organicSocial?.totals.users, goalOrgSocial, cy, cm);
           const directOT    = isOnTrack(ga4Data.direct?.totals.users,        goalDirect,    cy, cm);
           const orgSearchOT = isOnTrack(ga4Data.organicSearch?.totals.users, goalOrgSearch, cy, cm);
+          const webHealth   = calculateHealthScore([orgSocialOT, directOT, orgSearchOT]);
           return (
           <>
+            {webHealth !== null && (
+              <div className="flex justify-end">
+                <HealthScoreRing score={webHealth} color="#06b6d4" label="Website" />
+              </div>
+            )}
             {/* Per-channel sessions summary */}
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               <GA4ChannelCard label="Organic Social"  color={GA4_SOCIAL} ch={ga4Data.organicSocial} usersGoal={goalOrgSocial} usersOnTrack={orgSocialOT} />

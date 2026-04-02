@@ -2,7 +2,8 @@ import useGA4Data from '../hooks/useGA4Data';
 import LoadingSkeleton from './LoadingSkeleton';
 import ErrorState from './ErrorState';
 import GoalBadge from './GoalBadge';
-import { findGoal, isOnTrack, formatNumber } from '../utils/dataHelpers';
+import HealthScoreRing from './HealthScoreRing';
+import { findGoal, isOnTrack, formatNumber, calculateHealthScore } from '../utils/dataHelpers';
 import {
   LineChart, Line, BarChart, Bar,
   XAxis, YAxis, CartesianGrid, Tooltip, Legend,
@@ -187,6 +188,8 @@ export default function WebTrafficTab({ year, month, goals = [] }) {
   const directOT    = isOnTrack(direct.totals.users,        goalDirect,    year, month);
   const orgSearchOT = isOnTrack(organicSearch.totals.users, goalOrgSearch, year, month);
 
+  const healthScore = calculateHealthScore([orgSocialOT, directOT, orgSearchOT]);
+
   return (
     <div className="space-y-8">
       {/* Header */}
@@ -195,12 +198,17 @@ export default function WebTrafficTab({ year, month, goals = [] }) {
           <h2 className="text-lg font-semibold text-slate-100">Website Traffic</h2>
           <p className="text-xs text-slate-500 mt-0.5">GA4 · {monthLabel} · Organic Social, Direct &amp; Organic Search</p>
         </div>
-        <button
-          onClick={refresh}
-          className="text-xs text-slate-400 hover:text-slate-200 bg-slate-800 ring-1 ring-slate-700 rounded-lg px-3 py-1.5 transition-colors"
-        >
-          Refresh
-        </button>
+        <div className="flex items-center gap-4">
+          {healthScore !== null && (
+            <HealthScoreRing score={healthScore} color="#06b6d4" label="Website" />
+          )}
+          <button
+            onClick={refresh}
+            className="text-xs text-slate-400 hover:text-slate-200 bg-slate-800 ring-1 ring-slate-700 rounded-lg px-3 py-1.5 transition-colors"
+          >
+            Refresh
+          </button>
+        </div>
       </div>
 
       {/* Week-on-week traffic chart (all 3 channels) */}
