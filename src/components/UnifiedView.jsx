@@ -5,6 +5,7 @@ import {
 } from 'recharts';
 import ComparisonCard from './ComparisonCard';
 import MetricCard from './MetricCard';
+import GoalBadge from './GoalBadge';
 import HealthScoreRing from './HealthScoreRing';
 import { CombinedFollowerChart } from './FollowerChart';
 import AIInsights from './AIInsights';
@@ -195,7 +196,7 @@ function GA4WeeklyChart({ combinedByDate }) {
 
 // ── GA4 channel metric row ────────────────────────────────────────────────────
 
-function GA4ChannelCard({ label, color, ch }) {
+function GA4ChannelCard({ label, color, ch, usersGoal, usersOnTrack }) {
   if (!ch) return null;
   const change = pct(ch.totals.sessions, ch.prevTotals?.sessions);
   return (
@@ -203,13 +204,21 @@ function GA4ChannelCard({ label, color, ch }) {
       className="rounded-xl bg-slate-800 ring-1 ring-slate-700 p-4 flex flex-col gap-1"
       style={{ borderLeft: `3px solid ${color}` }}
     >
-      <span className="text-xs font-medium uppercase tracking-wider text-slate-500">{label}</span>
+      <div className="flex items-start justify-between gap-2">
+        <span className="text-xs font-medium uppercase tracking-wider text-slate-500">{label}</span>
+        <GoalBadge onTrack={usersOnTrack} />
+      </div>
       <span className="text-2xl font-bold text-slate-100">{formatNumber(ch.totals.sessions)}</span>
-      <span className="text-xs text-slate-500">sessions</span>
+      <span className="text-xs text-slate-500">sessions · {formatNumber(ch.totals.users)} users</span>
       {change && (
         <span className={`text-xs font-medium ${change.positive ? 'text-emerald-400' : 'text-red-400'}`}>
           {change.positive ? '+' : ''}{change.p}% vs prev month
         </span>
+      )}
+      {usersGoal != null && (
+        <p className="text-xs text-slate-500">
+          Users goal: <span className="text-slate-400 font-medium">{formatNumber(usersGoal)}</span>
+        </p>
       )}
     </div>
   );
@@ -392,13 +401,20 @@ export default function UnifiedView({ adamWeekly, adamMonthly, choreWeekly, chor
           </div>
         )}
 
-        {!ga4Loading && ga4Data && (
+        {!ga4Loading && ga4Data && (() => {
+          const goalOrgSocial = findGoal(goals, 'Website', 'Organic_Social_Users');
+          const goalDirect    = findGoal(goals, 'Website', 'Direct_Users');
+          const goalOrgSearch = findGoal(goals, 'Website', 'Organic_Search_Users');
+          const orgSocialOT = isOnTrack(ga4Data.organicSocial?.totals.users, goalOrgSocial, cy, cm);
+          const directOT    = isOnTrack(ga4Data.direct?.totals.users,        goalDirect,    cy, cm);
+          const orgSearchOT = isOnTrack(ga4Data.organicSearch?.totals.users, goalOrgSearch, cy, cm);
+          return (
           <>
             {/* Per-channel sessions summary */}
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-              <GA4ChannelCard label="Organic Social"  color={GA4_SOCIAL} ch={ga4Data.organicSocial} />
-              <GA4ChannelCard label="Direct"          color={GA4_DIRECT} ch={ga4Data.direct} />
-              <GA4ChannelCard label="Organic Search"  color={GA4_SEARCH} ch={ga4Data.organicSearch} />
+              <GA4ChannelCard label="Organic Social"  color={GA4_SOCIAL} ch={ga4Data.organicSocial} usersGoal={goalOrgSocial} usersOnTrack={orgSocialOT} />
+              <GA4ChannelCard label="Direct"          color={GA4_DIRECT} ch={ga4Data.direct}         usersGoal={goalDirect}    usersOnTrack={directOT} />
+              <GA4ChannelCard label="Organic Search"  color={GA4_SEARCH} ch={ga4Data.organicSearch}  usersGoal={goalOrgSearch} usersOnTrack={orgSearchOT} />
             </div>
 
             {/* Week-on-week sessions chart */}
@@ -407,7 +423,8 @@ export default function UnifiedView({ adamWeekly, adamMonthly, choreWeekly, chor
               <GA4WeeklyChart combinedByDate={ga4Data.combinedByDate} />
             </div>
           </>
-        )}
+          );
+        })()}
       </div>
 
       {/* Sales — Pipedrive */}

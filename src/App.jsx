@@ -165,7 +165,7 @@ export default function App() {
         )}
 
         {!loading && activeTab === 'website' && (
-          <WebTrafficTab year={selectedYM.year} month={selectedYM.month} />
+          <WebTrafficTab year={selectedYM.year} month={selectedYM.month} goals={data?.goals ?? []} />
         )}
 
         {!loading && !error && data && activeTab !== 'website' && (

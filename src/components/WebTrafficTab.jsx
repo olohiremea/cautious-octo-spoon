@@ -1,6 +1,8 @@
 import useGA4Data from '../hooks/useGA4Data';
 import LoadingSkeleton from './LoadingSkeleton';
 import ErrorState from './ErrorState';
+import GoalBadge from './GoalBadge';
+import { findGoal, isOnTrack, formatNumber } from '../utils/dataHelpers';
 import {
   LineChart, Line, BarChart, Bar,
   XAxis, YAxis, CartesianGrid, Tooltip, Legend,
@@ -54,33 +56,41 @@ function toWeekly(combinedByDate) {
 
 // ── Sub-components ────────────────────────────────────────────────────────────
 
-function MetricCard({ label, value, prevValue, color = COLORS.organicSocial }) {
+function MetricCard({ label, value, prevValue, color = COLORS.organicSocial, goal, onTrack }) {
   const pct = pctChange(value, prevValue);
   const positive = pct !== null && parseFloat(pct) >= 0;
   return (
     <div
-      className="rounded-xl bg-slate-800 ring-1 ring-slate-700 p-5 flex flex-col gap-1"
+      className="rounded-xl bg-slate-800 ring-1 ring-slate-700 p-5 flex flex-col gap-2"
       style={{ borderLeft: `3px solid ${color}` }}
     >
-      <span className="text-xs font-medium uppercase tracking-wider text-slate-500">{label}</span>
-      <span className="text-3xl font-bold text-slate-100">{fmt(value)}</span>
+      <div className="flex items-start justify-between gap-2">
+        <span className="text-xs font-medium uppercase tracking-wider text-slate-500">{label}</span>
+        <GoalBadge onTrack={onTrack} />
+      </div>
+      <span className="text-3xl font-bold text-slate-100 leading-none">{fmt(value)}</span>
       {pct !== null && (
         <span className={`text-xs font-medium ${positive ? 'text-emerald-400' : 'text-red-400'}`}>
           {positive ? '+' : ''}{pct}% vs prev month
         </span>
       )}
+      {goal != null && (
+        <p className="text-xs text-slate-500">
+          Monthly goal: <span className="text-slate-400 font-medium">{formatNumber(goal)}</span>
+        </p>
+      )}
     </div>
   );
 }
 
-function ChannelSection({ title, color, data }) {
+function ChannelSection({ title, color, data, usersGoal, usersOnTrack }) {
   const { totals, prevTotals } = data;
   return (
     <div className="space-y-3">
       <h3 className="text-sm font-semibold" style={{ color }}>{title}</h3>
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <MetricCard label="Sessions"   value={totals.sessions}  prevValue={prevTotals?.sessions}  color={color} />
-        <MetricCard label="Users"      value={totals.users}     prevValue={prevTotals?.users}      color={color} />
+        <MetricCard label="Users"      value={totals.users}     prevValue={prevTotals?.users}      color={color} goal={usersGoal} onTrack={usersOnTrack} />
         <MetricCard label="Page Views" value={totals.pageViews} prevValue={prevTotals?.pageViews}  color={color} />
       </div>
     </div>
@@ -160,7 +170,7 @@ function SourceChart({ bySource }) {
 
 // ── Main component ────────────────────────────────────────────────────────────
 
-export default function WebTrafficTab({ year, month }) {
+export default function WebTrafficTab({ year, month, goals = [] }) {
   const { data, loading, error, refresh } = useGA4Data(year, month);
 
   if (loading) return <LoadingSkeleton />;
@@ -168,6 +178,14 @@ export default function WebTrafficTab({ year, month }) {
 
   const { organicSocial, direct, organicSearch, combinedByDate, bySource } = data;
   const monthLabel = `${MONTH_NAMES[month]} ${year}`;
+
+  const goalOrgSocial = findGoal(goals, 'Website', 'Organic_Social_Users');
+  const goalDirect    = findGoal(goals, 'Website', 'Direct_Users');
+  const goalOrgSearch = findGoal(goals, 'Website', 'Organic_Search_Users');
+
+  const orgSocialOT = isOnTrack(organicSocial.totals.users, goalOrgSocial, year, month);
+  const directOT    = isOnTrack(direct.totals.users,        goalDirect,    year, month);
+  const orgSearchOT = isOnTrack(organicSearch.totals.users, goalOrgSearch, year, month);
 
   return (
     <div className="space-y-8">
@@ -193,9 +211,9 @@ export default function WebTrafficTab({ year, month }) {
 
       {/* Per-channel metric cards */}
       <div className="space-y-6">
-        <ChannelSection title="Organic Social"  color={COLORS.organicSocial} data={organicSocial} />
-        <ChannelSection title="Direct"          color={COLORS.direct}        data={direct} />
-        <ChannelSection title="Organic Search"  color={COLORS.organicSearch} data={organicSearch} />
+        <ChannelSection title="Organic Social"  color={COLORS.organicSocial} data={organicSocial} usersGoal={goalOrgSocial} usersOnTrack={orgSocialOT} />
+        <ChannelSection title="Direct"          color={COLORS.direct}        data={direct}         usersGoal={goalDirect}    usersOnTrack={directOT} />
+        <ChannelSection title="Organic Search"  color={COLORS.organicSearch} data={organicSearch}  usersGoal={goalOrgSearch} usersOnTrack={orgSearchOT} />
       </div>
 
       {/* Top organic-social sources */}
