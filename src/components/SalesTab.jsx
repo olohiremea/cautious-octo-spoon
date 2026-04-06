@@ -173,7 +173,7 @@ export default function SalesTab({ year, month }) {
               label="Inbound Leads"
               value={formatNumber(leads.total ?? 0)}
               accent={SALES_ORANGE}
-              subLabel="New deals created this month"
+              subLabel={leads.freshLeadsStageFound === false ? 'Stage "Fresh Leads" not found — showing all new deals' : 'Deals entered Fresh Leads stage'}
             />
             <MetricCard
               label="Appointments Held"

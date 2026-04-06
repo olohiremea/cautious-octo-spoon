@@ -133,14 +133,25 @@ export default async function handler(req, res) {
     const sourceField = findSourceField(dealFields);
     const enumMap    = buildEnumMap(sourceField);
 
-    // Find the "Appointment Held" stage (case-insensitive)
+    // Find the "Fresh Leads" and "Appointment Held" stages (case-insensitive)
+    const freshLeadsStage = stagesRes.find(
+      (s) => s.name.trim().toLowerCase() === 'fresh leads',
+    );
     const apptStage = stagesRes.find(
       (s) => s.name.trim().toLowerCase() === 'appointment held',
     );
 
     // ── Filter deals to the selected month ──────────────────────────────────
-    // "Inbound leads" = deals created this month
-    const newDeals = allDeals.filter((d) => inMonth(d.add_time, start, end));
+    // "Inbound leads" = deals that entered the "Fresh Leads" stage this month.
+    // stage_change_time reflects when the deal last moved to its current stage,
+    // so we count deals currently sitting in Fresh Leads that arrived this month.
+    const freshLeads = freshLeadsStage
+      ? allDeals.filter(
+          (d) =>
+            d.stage_id === freshLeadsStage.id &&
+            inMonth(d.stage_change_time, start, end),
+        )
+      : allDeals.filter((d) => inMonth(d.add_time, start, end)); // fallback to created date
 
     // "Conversions / new clients" = deals won this month
     const wonDeals = allDeals.filter(
@@ -167,7 +178,7 @@ export default async function handler(req, res) {
     const sourceKey = sourceField?.key ?? null;
     const sourceCounts = {};
 
-    for (const deal of newDeals) {
+    for (const deal of freshLeads) {
       let label = 'Unknown';
       if (sourceKey && deal[sourceKey] != null) {
         const raw = String(deal[sourceKey]);
@@ -181,10 +192,12 @@ export default async function handler(req, res) {
       .map(([source, count]) => ({ source, count }))
       .sort((a, b) => b.count - a.count);
 
-    // ── Weekly new-deal trend ─────────────────────────────────────────────────
+    // ── Weekly fresh-leads trend ──────────────────────────────────────────────
+    // Use stage_change_time when Fresh Leads stage was found, else add_time
     const weeklyMap = {};
-    for (const deal of newDeals) {
-      const day = parseInt(String(deal.add_time).slice(8, 10), 10);
+    for (const deal of freshLeads) {
+      const ts  = freshLeadsStage ? deal.stage_change_time : deal.add_time;
+      const day = parseInt(String(ts).slice(8, 10), 10);
       const wk  = `Wk ${Math.floor((day - 1) / 7) + 1}`;
       weeklyMap[wk] = (weeklyMap[wk] ?? 0) + 1;
     }
@@ -194,17 +207,18 @@ export default async function handler(req, res) {
       .map((w) => ({ week: w, leads: weeklyMap[w] ?? 0 }));
 
     // ── Conversion rate ───────────────────────────────────────────────────────
-    const conversionRate = newDeals.length > 0
-      ? parseFloat(((wonDeals.length / newDeals.length) * 100).toFixed(1))
+    const conversionRate = freshLeads.length > 0
+      ? parseFloat(((wonDeals.length / freshLeads.length) * 100).toFixed(1))
       : null;
 
     res.json({
       period:    { year, month, start, end },
       sourceFieldName: sourceField?.name ?? null,
       leads: {
-        total:   newDeals.length,
+        total:          freshLeads.length,
+        freshLeadsStageFound: !!freshLeadsStage,
         bySource,
-        weekly:  weeklyLeads,
+        weekly:         weeklyLeads,
       },
       appointmentsHeld: {
         total:          appointmentsHeld.length,
